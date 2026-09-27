@@ -73,6 +73,7 @@ export function exportDay(slate) {
             rulers: a.guangshi.rulers,
             distribution: a.guangshi.distribution,
             oddsCheck: a.guangshi.oddsCheck,
+            locate: a.guangshi.locate,
             motto: a.guangshi.motto,
             note: a.guangshi.note,
           }

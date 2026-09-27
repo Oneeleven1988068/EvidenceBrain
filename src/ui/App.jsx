@@ -379,6 +379,18 @@ function Detail({ m, onClose }) {
             {g.rulers?.math?.diff != null ? ` · 差 ${g.rulers.math.diff}` : ""} · 只校准
           </div>
           <div className="muted">{g.motto}</div>
+          {g.locate && (
+            <>
+              <div className="muted">
+                定位 主 {g.locate.home?.image?.role || "未定"} · {g.locate.home?.recent?.trend || "近况未知"}
+                {g.locate.home?.recent?.venue ? ` · ${g.locate.home.recent.venue}` : ""}
+                {" / "}客 {g.locate.away?.image?.role || "未定"} · {g.locate.away?.recent?.trend || "近况未知"}
+              </div>
+              {g.locate.home?.coldUpset === false && <p className="muted">{g.locate.home.note}</p>}
+              {g.locate.away?.coldUpset === false && <p className="muted">{g.locate.away.note}</p>}
+              {g.locate.derby?.drawBias && <p className="muted">{g.locate.derby.note}</p>}
+            </>
+          )}
           {g.rulers?.drift?.halfTier && <p className="warn">半档已偏：数学广实提醒权威可能走远，但不能越过权威替它做决定。</p>}
           {g.rulers?.revisions?.some((r) => r.role === "提醒") && <p className="muted">一场球可以提醒，不能单独判刑。</p>}
           {(g.rulers?.rank?.home?.kind === "排名恐慌" || g.rulers?.rank?.away?.kind === "排名恐慌") && (

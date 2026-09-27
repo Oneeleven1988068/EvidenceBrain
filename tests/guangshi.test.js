@@ -21,6 +21,11 @@ import {
   applyVenueDragon,
   distributionFromGd,
   verifyOddsDirection,
+  locateGuangshi,
+  derbyRead,
+  recentTrend,
+  hardStrength,
+  marketImage,
   williamInterval,
 } from "../src/model/guangshi.js";
 import { analyzeMatch } from "../src/model/pipeline.js";
@@ -463,6 +468,71 @@ describe("第二篇：GD=客减主，分布与赔率", () => {
   it("顺分布强队赔率过低判诱强", () => {
     const d = distributionFromGd(3);
     expect(verifyOddsDirection({ gd: 3, distribution: d, homeOdds: 1.28, awayOdds: 8 }).kind).toBe("诱强");
+  });
+});
+
+describe("第三段：广实定位三维", () => {
+  it("硬实力没数据就未接入，不编身价", () => {
+    expect(hardStrength({}).status).toBe("未接入");
+    expect(hardStrength({ hard: { squadValue: 120, coach: "稳定" } }).status).toBe("已接入");
+  });
+
+  it("近况能读上升下落低迷，主场龙客场虫分开", () => {
+    const up = recentTrend([
+      { gf: 2, ga: 0 }, { gf: 1, ga: 0 }, { gf: 2, ga: 1 },
+      { gf: 0, ga: 1 }, { gf: 0, ga: 2 }, { gf: 1, ga: 1 },
+    ]);
+    expect(up.trend).toBe("上升");
+    const down = recentTrend([
+      { gf: 0, ga: 2 }, { gf: 0, ga: 1 }, { gf: 1, ga: 3 },
+      { gf: 2, ga: 0 }, { gf: 1, ga: 0 }, { gf: 2, ga: 1 },
+    ]);
+    expect(down.trend).toBe("低迷");
+    expect(recentTrend([], { dragon: "home" }).venue).toBe("主场龙");
+    expect(recentTrend([], { worm: "away" }).venue).toBe("客场虫");
+  });
+
+  it("豪门状态差也不当爆冷，德比平局偏高", () => {
+    const loc = locateGuangshi({
+      pedigree: 0.8,
+      prestige: "超强",
+      recent: [
+        { gf: 0, ga: 2 }, { gf: 1, ga: 3 }, { gf: 0, ga: 1 },
+        { gf: 2, ga: 1 }, { gf: 1, ga: 0 },
+      ],
+    });
+    expect(loc.image.role).toBe("豪门");
+    expect(loc.recent.trend).toBe("低迷");
+    expect(loc.coldUpset).toBe(false);
+    expect(loc.note).toMatch(/不轻易当爆冷/);
+    expect(loc.dynamic).toBe(true);
+    expect(derbyRead({ homeImage: "豪门", awayImage: "传统强队" }).drawBias).toBe(true);
+    expect(derbyRead({ homeImage: "中游", awayImage: "中游" }).drawBias).toBe(false);
+  });
+
+  it("接入分析后定位跟着走，不改盘口 μ", () => {
+    const a = analyzeMatch({
+      id: "big-slump",
+      jcId: "演示豪门",
+      leagueAbbName: "英超",
+      businessDate: "2026-09-28",
+      kickoffAt: "2026-09-28T19:00:00.000Z",
+      home: "曼联",
+      away: "伯恩茅斯",
+      derby: false,
+      guangshiPreset: { home: { name: "准强", prestige: "人强", pedigree: 0.8 }, away: { name: "中游" } },
+      fundamentals: {
+        home: {
+          gf: 10, ga: 14, played: 8, rank: 12, teams: 20,
+          recent: [{ gf: 0, ga: 2 }, { gf: 0, ga: 1 }, { gf: 1, ga: 3 }],
+        },
+        away: { gf: 9, ga: 10, played: 8, rank: 11, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-09-28T10:00:00.000Z", had: { home: 1.7, draw: 3.6, away: 5.0 } },
+    }, new Date("2026-09-28T12:00:00.000Z"));
+    expect(a.guangshi.locate.home.image.role).toBe("豪门");
+    expect(a.guangshi.locate.home.coldUpset).toBe(false);
+    expect(a.bookMuUnchanged).toBe(true);
   });
 });
 

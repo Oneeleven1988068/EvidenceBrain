@@ -3,6 +3,7 @@
  * 第一篇：档位不是排名；当轮权威表算差；数学广实只校准、不能越权；
  * 一场球可以提醒，不能单独判刑。
  * 第二篇：GD=客档−主档；符号定强弱，绝对值看差距，分布定热度，赔率验方向。
+ * 第三段：广实定位=硬实力+近况+市场形象的综合评估，必须动态看，是分析策略。
  * 打分不看赔率。对照价格时不改盘口 μ。
  */
 import { gridOf, oneXTwo } from "../calc/dixonColes.js";
@@ -487,6 +488,134 @@ export function seasonPhase(played, rounds) {
 export function applyVenueDragon(num, dragon) {
   if (num == null) return null;
   return dragon ? Number(num) - 0.5 : Number(num);
+}
+
+export const IMAGE_ROLES = ["豪门", "传统强队", "中游", "保级"];
+
+export function hardStrength(side = {}) {
+  const hard = side.hard || {};
+  const items = {
+    squadValue: hard.squadValue ?? side.squadValue ?? null,
+    finance: hard.finance ?? side.finance ?? null,
+    wages: hard.wages ?? side.wages ?? null,
+    recruit: hard.recruit ?? side.recruit ?? null,
+    coach: hard.coach ?? side.coach ?? null,
+    tactics: hard.tactics ?? side.tactics ?? null,
+    facilities: hard.facilities ?? side.facilities ?? null,
+  };
+  const filled = Object.entries(items).filter(([, v]) => v != null && v !== "");
+  if (!filled.length) {
+    return { status: "未接入", role: "硬实力", note: "阵容身价、财力、引援、薪资、教练战术、设施都还没到", items };
+  }
+  return {
+    status: "已接入",
+    role: "硬实力",
+    items,
+    filled: filled.map(([k]) => k),
+    note: "硬实力是客观底座：身价、财力、引援、薪资、战术稳定、设施",
+  };
+}
+
+export function recentTrend(matches = [], { injuries, homeForm, awayForm, dragon, worm } = {}) {
+  const rows = (matches || []).filter((m) => m?.gf != null && m?.ga != null);
+  const pts = (slice) => slice.reduce((s, m) => s + (m.gf > m.ga ? 3 : m.gf === m.ga ? 1 : 0), 0);
+  let trend = "未知";
+  if (rows.length >= 3) {
+    const last = rows.slice(0, 3);
+    const lastPts = pts(last);
+    const lastWins = last.filter((m) => m.gf > m.ga).length;
+    const lastLosses = last.filter((m) => m.gf < m.ga).length;
+    const prev = rows.slice(3, 6);
+    const prevPts = prev.length ? pts(prev) : null;
+    if (lastPts <= 1 && lastLosses >= 2) trend = "低迷";
+    else if (prevPts != null && lastPts >= prevPts + 4 && lastWins >= 2) trend = "上升";
+    else if (prevPts != null && lastPts + 3 <= prevPts) trend = "下落";
+    else if (lastPts <= 2 && lastLosses >= 2) trend = "下落";
+    else trend = "平稳";
+  } else if (rows.length) {
+    const p = pts(rows);
+    trend = p >= rows.length * 2 ? "上升" : p <= 1 ? "低迷" : "平稳";
+  }
+  let venue = null;
+  if (dragon === "home" || homeForm === "dragon") venue = "主场龙";
+  else if (worm === "away" || awayForm === "worm") venue = "客场虫";
+  else if (dragon === "away") venue = "客场龙";
+  const injuryHit = Boolean(injuries?.abnormal || injuries?.hit || (injuries?.players || []).length);
+  return {
+    status: rows.length || venue || injuryHit ? "已接入" : "未接入",
+    role: "近况",
+    trend,
+    venue,
+    injuryHit,
+    n: rows.length,
+    note: [trend !== "未知" ? `近期${trend}` : null, venue, injuryHit ? "体能伤病有影响" : null].filter(Boolean).join(" · ") || "近况还没拆开",
+  };
+}
+
+export function marketImage(side = {}, { lateSeason = false, rank, teams } = {}) {
+  const raw = side.image || side.role || side.prestigeName || null;
+  let role = IMAGE_ROLES.includes(raw) ? raw : null;
+  const pedigree = side.pedigree ?? side.prestigePedigree ?? null;
+  const prestigeNum = parseTierName(side.prestige ?? side.prestigeName);
+  if (!role) {
+    if (pedigree >= 0.6 || (prestigeNum != null && prestigeNum <= 3)) role = "豪门";
+    else if (prestigeNum != null && prestigeNum <= 4.5) role = "传统强队";
+    else if (lateSeason && rank != null && teams && rank >= teams - 2) role = "保级";
+    else if (prestigeNum != null && prestigeNum >= 7.5) role = "中游";
+    else if (side.tierNum != null && side.tierNum >= 7 && side.tierNum <= 8) role = "中游";
+  }
+  const heat = side.heat ?? side.media ?? side.popularity ?? null;
+  return {
+    status: role || pedigree != null || heat != null ? "已接入" : "未接入",
+    role: role || "未定",
+    pedigree,
+    heat,
+    note: role ? `市场形象按${role}看，这是长期地位，不是一场的排名` : "形象未接入",
+  };
+}
+
+/**
+ * 广实定位：硬实力（客观底座）+ 近况（动态）+ 形象（主观心理）。
+ * 必须动态看。豪门状态差，口碑和投资热度不会掉太多，不轻易当爆冷。
+ */
+export function locateGuangshi(side = {}, ctx = {}) {
+  const hard = hardStrength(side);
+  const recent = recentTrend(side.recent || side.season || [], {
+    injuries: ctx.injuries || side.injuries,
+    homeForm: side.homeForm,
+    awayForm: side.awayForm,
+    dragon: side.dragon,
+    worm: side.worm,
+  });
+  const image = marketImage(side, {
+    lateSeason: ctx.lateSeason,
+    rank: side.rank,
+    teams: side.teams,
+  });
+  const slumpGiant = image.role === "豪门" && (recent.trend === "低迷" || recent.trend === "下落");
+  return {
+    definition: "广实定位是对一支球队在联赛或市场里综合实力地位的评估，要按基本面动态看",
+    strategy: true,
+    dynamic: true,
+    hard,
+    recent,
+    image,
+    coldUpset: slumpGiant ? false : null,
+    note: slumpGiant
+      ? "豪门状态不佳，口碑还在，市场热度不会掉太多，不轻易当爆冷"
+      : "广实定位是分析策略，必须动态看",
+  };
+}
+
+export function derbyRead({ homeImage, awayImage, derby = false } = {}) {
+  const giants = ["豪门", "传统强队"];
+  const strongStrong = giants.includes(homeImage) && giants.includes(awayImage);
+  if (!derby && !strongStrong) return { kind: "常规", drawBias: false };
+  return {
+    kind: derby ? "德比" : "强强",
+    drawBias: true,
+    note: "强强对话或德比胜负难测，平局概率偏高",
+  };
 }
 
 /**
@@ -986,6 +1115,29 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     oddsCheck,
   });
 
+  const lateSeason = Boolean(league.catalog?.rounds && played != null && played >= Math.ceil(league.catalog.rounds * 0.75));
+  const homeLocate = locateGuangshi({
+    ...fund.home,
+    ...preset.home,
+    recent: fund.home?.recent || fund.home?.season,
+    tierNum: tableHome ?? homeNum,
+    rank: fund.home?.rank ?? match.standing?.home?.rank,
+    teams: fund.home?.teams || league.catalog?.teams,
+  }, { injuries: match.injuries, lateSeason });
+  const awayLocate = locateGuangshi({
+    ...fund.away,
+    ...preset.away,
+    recent: fund.away?.recent || fund.away?.season,
+    tierNum: tableAway ?? awayNum,
+    rank: fund.away?.rank ?? match.standing?.away?.rank,
+    teams: fund.away?.teams || league.catalog?.teams,
+  }, { injuries: match.injuries, lateSeason });
+  const derby = derbyRead({
+    homeImage: homeLocate.image.role,
+    awayImage: awayLocate.image.role,
+    derby: match.derby === true || preset.derby === true,
+  });
+
   const status = homeNum == null && awayNum == null && homeScore.status === "未接入"
     ? "未接入"
     : "已计算";
@@ -996,8 +1148,8 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     locked,
     ladder,
     inferred,
-    home: { num: homeNum, name: nameOf(homeNum), score: homeScore, ruler: "authority" },
-    away: { num: awayNum, name: nameOf(awayNum), score: awayScore, ruler: "authority" },
+    home: { num: homeNum, name: nameOf(homeNum), score: homeScore, ruler: "authority", locate: homeLocate },
+    away: { num: awayNum, name: nameOf(awayNum), score: awayScore, ruler: "authority", locate: awayLocate },
     diff,
     diffText: diffText.text,
     homeStrongerBy: diffText.homeStrongerBy,
@@ -1013,7 +1165,8 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     rulers,
     distribution,
     oddsCheck,
+    locate: { home: homeLocate, away: awayLocate, derby },
     motto: "符号定强弱，绝对值看差距，分布定热度，赔率验方向",
-    note: "GD=客档−主档，只读当轮权威表；数学广实只校准；赔率含抽水无稳赢；不改盘口 μ",
+    note: "广实定位是动态策略；GD=客档−主档只读权威表；数学广实只校准；赔率含抽水无稳赢；不改盘口 μ",
   };
 }
