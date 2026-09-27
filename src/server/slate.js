@@ -57,6 +57,21 @@ export function exportDay(slate) {
       verdict: a.verdict,
       league: classify(a.league.name).name,
       name_map_ok: a.nameMap?.ok ?? false,
+      guangshi: a.guangshi
+        ? {
+            status: a.guangshi.status,
+            home: a.guangshi.home,
+            away: a.guangshi.away,
+            diff: a.guangshi.diff,
+            diffText: a.guangshi.diffText,
+            expected: a.guangshi.expected,
+            openRead: a.guangshi.openRead,
+            vs: a.guangshi.vs,
+            gs1x2: a.guangshi.gs1x2,
+            note: a.guangshi.note,
+          }
+        : null,
+      bookMuUnchanged: a.bookMuUnchanged,
     })),
   };
 }

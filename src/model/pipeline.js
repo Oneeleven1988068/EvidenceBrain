@@ -13,6 +13,7 @@ import {
   verdictOf,
   zName,
 } from "./verdict.js";
+import { analyzeGuangshi } from "./guangshi.js";
 
 export function pinnacleLinesFromBooks(books) {
   const ah = [];
@@ -197,7 +198,9 @@ export function analyzeMatch(match, now = new Date()) {
     form: { status: "不适用" },
     clean: { status: "不适用" },
     table: match.standing ? { status: "已接入" } : { status: league.class === "league" ? "缺失" : "不适用" },
-    rotation: rotation.status === "赛程未接入" ? { status: "缺失" } : { status: league.class === "league" ? "已接入" : "不适用" },
+    rotation: league.class === "league"
+      ? (rotation.status === "赛程未接入" ? { status: "缺失" } : { status: "已接入" })
+      : { status: "不适用" },
     flags: [
       ...(injuryAbnormal ? ["伤停扣减异常"] : []),
       ...(goalsAssumed ? ["总进球为假设值"] : []),
@@ -219,9 +222,15 @@ export function analyzeMatch(match, now = new Date()) {
 
   const pathLabel = new Date(now) < new Date(close.close_at || 0) ? "未到封盘时点" : verdict.title;
 
+  const bookMuBefore = { lambdaHome: fit.ok ? fit.lambdaHome : null, lambdaAway: fit.ok ? fit.lambdaAway : null };
+  const guangshi = analyzeGuangshi(match, books, { rho: rhoInfo.rho });
+  const bookMuAfter = { lambdaHome: fit.ok ? fit.lambdaHome : null, lambdaAway: fit.ok ? fit.lambdaAway : null };
+
   return {
     id: match.id,
     jcId: match.jcId,
+    home: match.home,
+    away: match.away,
     league,
     rhoInfo,
     close,
@@ -255,6 +264,9 @@ export function analyzeMatch(match, now = new Date()) {
     columnLagMinutes,
     computedAt: new Date(now).toISOString(),
     nameMap: match.nameMap || { ok: match.injuries?.name_map_ok === true },
+    guangshi,
+    bookMuUnchanged: bookMuBefore.lambdaHome === bookMuAfter.lambdaHome
+      && bookMuBefore.lambdaAway === bookMuAfter.lambdaAway,
   };
 }
 

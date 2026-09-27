@@ -141,6 +141,7 @@ export default function App() {
                   <span className={`tier ${m.verdict.tier}`}>{TIER_LABEL[m.verdict.tier]} {pts(m.verdict.peak?.diffPts)}</span>
                 </div>
                 <div className="meta">缺项：{m.verdict.missing.length ? m.verdict.missing.join("、") : "无"}</div>
+                <GuangshiLine g={m.guangshi} />
                 <StatusBar m={m} />
               </article>
             ))}
@@ -207,8 +208,22 @@ export default function App() {
   );
 }
 
+function fmtHkt(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-CN", {
+    hour12: false,
+    timeZone: "Asia/Hong_Kong",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }) + " HKT";
+}
+
 function labelTeams(m) {
-  return `${m.nameMap?.jcHome || m.jcId || ""}`;
+  const h = m.home || m.nameMap?.jcHome || "?";
+  const a = m.away || m.nameMap?.jcAway || "?";
+  return `${h} vs ${a}`;
 }
 
 function StatusBar({ m }) {
@@ -240,12 +255,13 @@ function Detail({ m, onClose, onPick }) {
       <div className="card-head">
         <div>
           <div className="teams">{m.jcId} {m.league.name}</div>
-          <div className="clock">计算于 {new Date(m.computedAt).toLocaleString("zh-CN", { hour12: false, timeZone: "Asia/Hong_Kong" })} HKT</div>
+          <div className="clock">计算于 {fmtHkt(m.computedAt)}</div>
         </div>
         <span className={`tier ${m.verdict.tier}`}>{TIER_LABEL[m.verdict.tier]}</span>
       </div>
       <div className="meta">队名对照：体彩 / 来源 / FotMob。{m.nameMap?.ok === false ? "队名未对上" : "已对照"}</div>
       <StatusBar m={m} />
+      <GuangshiLine g={m.guangshi} />
       {warnings.length > 0 && <div className="warn">{warnings.join(" · ")}（警告压住结论）</div>}
 
       <div className="card">
@@ -300,24 +316,26 @@ function Detail({ m, onClose, onPick }) {
         {(m.books.ah || []).map((b, i) => (
           <div key={`a${i}`} className="kv">
             <span>亚盘 {b.line}</span>
-            <span>HK {b.home}/{b.away} · 公司 {b.book_id} · 变 {b.changed_at} · 抓 {b.fetched_at}</span>
+            <span>香港盘 {b.home}/{b.away} · 公司 {b.book_id} · 变 {fmtHkt(b.changed_at)} · 抓 {fmtHkt(b.fetched_at)}</span>
           </div>
         ))}
         {(m.books.ou || []).map((b, i) => (
           <div key={`o${i}`} className="kv">
             <span>大小 {b.line}</span>
-            <span>HK {b.over}/{b.under} · 公司 {b.book_id} · 变 {b.changed_at} · 抓 {b.fetched_at}</span>
+            <span>香港盘 {b.over}/{b.under} · 公司 {b.book_id} · 变 {fmtHkt(b.changed_at)} · 抓 {fmtHkt(b.fetched_at)}</span>
           </div>
         ))}
         {m.books.euro && (
           <div className="kv">
             <span>欧赔 177</span>
             <span>
-              {m.books.euro.raw?.home}/{m.books.euro.raw?.draw}/{m.books.euro.raw?.away} decimal · 变 {m.books.euro.changed_at} · 抓 {m.books.euro.fetched_at}
+              {m.books.euro.raw?.home}/{m.books.euro.raw?.draw}/{m.books.euro.raw?.away} 小数盘 · 变 {fmtHkt(m.books.euro.changed_at)} · 抓 {fmtHkt(m.books.euro.fetched_at)}
             </span>
           </div>
         )}
       </details>
+
+      <GuangshiBox g={m.guangshi} />
 
       <details>
         <summary>六行调整</summary>
@@ -346,6 +364,60 @@ function Detail({ m, onClose, onPick }) {
         <button onClick={() => onPick(m)}>加入串关</button>
       </div>
     </div>
+  );
+}
+
+function GuangshiLine({ g }) {
+  if (!g) return <div className="meta">广实 未接入</div>;
+  if (g.status === "未接入") return <div className="meta">广实 未接入（缺进失球和排名，不打分）</div>;
+  const vs = g.vs?.kind || "—";
+  const open = g.openRead?.kind || "—";
+  return (
+    <div className="gs-line">
+      广实 {g.home?.name || "?"} / {g.away?.name || "?"} · {g.diffText || "差未定"} · {open} · {vs}
+    </div>
+  );
+}
+
+function GuangshiBox({ g }) {
+  if (!g) return null;
+  const inv = g.inventory || {};
+  const got = Object.entries(inv).filter(([, v]) => v).map(([k]) => k);
+  const miss = Object.entries(inv).filter(([, v]) => !v).map(([k]) => k);
+  return (
+    <details open>
+      <summary>广实推论（不改盘口 μ）</summary>
+      <div className="kv"><span>主队档</span><span>{g.home?.name || "未定"} {g.home?.num != null ? `(${g.home.num})` : ""}</span></div>
+      <div className="kv"><span>客队档</span><span>{g.away?.name || "未定"} {g.away?.num != null ? `(${g.away.num})` : ""}</span></div>
+      <div className="kv"><span>广实差</span><span>{g.diff ?? "—"} · {g.diffText}（主减客，负=主高）</span></div>
+      <div className="kv"><span>应开</span><span>{g.expected?.label || "未定"}</span></div>
+      <div className="kv"><span>开盘</span><span>{g.openRead?.kind || "未对照"} {g.openRead?.note || ""}</span></div>
+      <div className="kv"><span>判定</span><span>{g.vs?.kind} · {g.vs?.note}</span></div>
+      <div className="kv"><span>广实偏向</span><span>胜平负 {g.vs?.gsLean || "—"} · 热门 {g.hot || "—"}</span></div>
+      <div className="kv"><span>盘口偏向</span><span>{g.vs?.priceLean || "—"} · 用的是 {g.vs?.priceSource}</span></div>
+      <div className="kv"><span>深浅</span><span>{g.vs?.depth?.kind || "—"} 应开 {g.vs?.depth?.expectedAh ?? "—"} 平博五五开 {g.vs?.depth?.actualAh ?? "—"}</span></div>
+      <div className="meta">{g.vs?.jcHhadNote}</div>
+      {g.home?.score && (
+        <div className="meta">
+          主队打分 {g.home.score.status === "已接入" ? g.home.score.score.toFixed(3) : g.home.score.reason}
+          {g.home.score.weights ? ` · 净胜${g.home.score.weights.gd} 排名${g.home.score.weights.rank} 近况${g.home.score.weights.form}` : ""}
+        </div>
+      )}
+      {g.away?.score && (
+        <div className="meta">
+          客队打分 {g.away.score.status === "已接入" ? g.away.score.score.toFixed(3) : g.away.score.reason}
+        </div>
+      )}
+      {g.gs1x2 && (
+        <div className="meta">
+          广实胜平负 {(g.gs1x2.home * 100).toFixed(1)} / {(g.gs1x2.draw * 100).toFixed(1)} / {(g.gs1x2.away * 100).toFixed(1)}
+          {g.gsAh ? ` · 预期让球 ${g.gsAh.line}` : ""}
+        </div>
+      )}
+      <div className="meta">现在拿到：{got.length ? got.join("、") : "无"}</div>
+      <div className="meta">还缺：{miss.length ? miss.join("、") : "无"}</div>
+      <div className="meta">{g.note}</div>
+    </details>
   );
 }
 

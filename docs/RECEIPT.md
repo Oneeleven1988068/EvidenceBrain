@@ -68,3 +68,15 @@
 | 62 | `src/ui/App.jsx` `src/ui/styles.css` | UI | 27 项手机优先 |
 
 盘口补丁：欧赔独立存 177 + decimal + 自己的变化时间；去水保持比例法；亚盘+大小球少于 5 条最多弱倾向。
+
+## 广实推论（本轮追加）
+
+| 项 | 文件 | 函数 |
+|---|---|---|
+| 九档编号、主减客 | `src/league/tiers.js` | `guangshiDiff` `nameOf` |
+| 钉中游、开盘反推、盘能 | `src/model/guangshi.js` | `lockMidtable` `inferFromOpening` `panNeng` |
+| 底蕴阻尼 | `src/model/guangshi.js` | `applyPedigree` |
+| 区间/威廉锚点 | `src/model/guangshi.js` | `intervalFromDiff` `williamInterval` |
+| 55/25/20 打分，不看赔率 | `src/model/guangshi.js` | `scoreSide` |
+| 实力/资金/诱盘，不改 μ | `src/model/guangshi.js` `src/model/pipeline.js` | `classifyVsPrice` `analyzeGuangshi` |
+| 卡片一行+展开 | `src/ui/App.jsx` | `GuangshiLine` `GuangshiBox` |

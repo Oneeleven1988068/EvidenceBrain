@@ -100,3 +100,23 @@ export function probsFromMu(lambdaHome, lambdaAway, rho, maxGoals = 10) {
   const { grid } = gridOf(lambdaHome, lambdaAway, rho, maxGoals);
   return { grid, ...oneXTwo(grid) };
 }
+
+/** 体彩整数让球：比较 home + line 与 away。 */
+export function hhadFromGrid(grid, line) {
+  if (line == null || Number.isNaN(Number(line))) {
+    return { ok: false, label: "让球数缺失、不结算" };
+  }
+  let home = 0;
+  let draw = 0;
+  let away = 0;
+  const n = Number(line);
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const m = i + n - j;
+      if (m > 0) home += grid[i][j];
+      else if (m === 0) draw += grid[i][j];
+      else away += grid[i][j];
+    }
+  }
+  return { ok: true, home, draw, away };
+}

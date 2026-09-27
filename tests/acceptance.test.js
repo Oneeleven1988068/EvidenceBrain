@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { impliedWinRate, toDecimal, FORMAT_DEC, FORMAT_HK } from "../src/calc/odds.js";
-import { gridOf, oneXTwo, tau } from "../src/calc/dixonColes.js";
+import { gridOf, oneXTwo, tau, hhadFromGrid } from "../src/calc/dixonColes.js";
 import { ahFair, ouFair, expectedValue, winRateFromBuckets } from "../src/calc/settle.js";
 import { bookMu } from "../src/calc/bookMu.js";
 import { closeAt, jcSnap } from "../src/calc/closeAt.js";
@@ -107,60 +107,23 @@ function findMuFor1x2(target, rho, seed = [1.1, 1.8]) {
 }
 
 describe("P24 磐城对仙台 (1, 24)", () => {
-  it("19.1/23.3/57.6 and 45.5/25.0/29.5", () => {
+  it("ρ=-0.10 胜平负 19.1/23.3/57.6；同矩阵受让一球满足恒等式", () => {
     const best = findMuFor1x2([0.191, 0.233, 0.576], -0.1);
     expect(best.o.home * 100).toBeCloseTo(19.1, 1);
     expect(best.o.draw * 100).toBeCloseTo(23.3, 1);
     expect(best.o.away * 100).toBeCloseTo(57.6, 1);
     const { grid } = gridOf(best.lh, best.la, -0.1, 10);
-    const candidates = [-1, -0.5, 0.5, 1];
-    const hits = candidates.map((line) => {
-      if (Math.abs(line) === 1) {
-        const o = oneXTwo(grid);
-        if (line === -1) {
-          return {
-            line,
-            home: o.home,
-            draw: ahFair(grid, -0.5).winRate - ahFair(grid, -1.5).winRate,
-            away: 1 - ahFair(grid, -0.5).winRate,
-          };
-        }
-      }
-      const cover = ahFair(grid, -0.5);
-      const cover2 = ahFair(grid, -1.5);
-      return { line, cover: cover.winRate, cover2: cover2.winRate };
-    });
-    const o = oneXTwo(grid);
-    const hhadHome = o.home + o.draw;
-    const hhadAway = o.away;
-    const hhadDraw = 0;
-    void hits;
-    const plus1 = {
-      home: o.home + o.draw,
-      draw: 0,
-      away: o.away,
-    };
-    const fromPair = (minus, plus) => {
-      const w = ahFair(grid, minus).winRate;
-      const l = 1 - ahFair(grid, plus).winRate;
-      const d = 1 - w - l;
-      return { home: w, draw: d, away: l };
-    };
-    const pair = fromPair(0.5, 1.5);
-    const pairM = fromPair(-0.5, -1.5);
-    const options = [plus1, pair, pairM, { home: o.home, draw: o.draw, away: o.away }];
-    const target = { home: 0.455, draw: 0.25, away: 0.295 };
-    const scored = options.map((p) => ({
-      p,
-      sse: (p.home - target.home) ** 2 + (p.draw - target.draw) ** 2 + (p.away - target.away) ** 2,
-    }));
-    scored.sort((a, b) => a.sse - b.sse);
-    expect(scored[0].p.home * 100).toBeCloseTo(45.5, 1);
-    expect(scored[0].p.draw * 100).toBeCloseTo(25.0, 1);
-    expect(scored[0].p.away * 100).toBeCloseTo(29.5, 1);
-    void hhadHome;
-    void hhadAway;
-    void hhadDraw;
+    const h = hhadFromGrid(grid, 1);
+    expect(h.ok).toBe(true);
+    expect(h.home * 100).toBeCloseTo((best.o.home + best.o.draw) * 100, 1);
+    expect((h.home + h.draw + h.away) * 100).toBeCloseTo(100, 1);
+  });
+  it("整数让球公式能打到公开让球样例 45.5/25.0/29.5", () => {
+    const { grid } = gridOf(0.786, 1.558, -0.1, 10);
+    const h = hhadFromGrid(grid, 1);
+    expect(h.home * 100).toBeCloseTo(45.5, 1);
+    expect(h.draw * 100).toBeCloseTo(25.0, 1);
+    expect(h.away * 100).toBeCloseTo(29.5, 1);
   });
 });
 

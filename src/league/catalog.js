@@ -7,6 +7,7 @@ export const LEAGUE_CATALOG = {
   英超: {
     class: "league",
     code: "EPL",
+    tierSpan: "top",
     teams: 20,
     rounds: 38,
     promo: null,
