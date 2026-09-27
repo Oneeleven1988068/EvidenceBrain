@@ -396,11 +396,26 @@ function leanName(x) {
   return LEAN_NAME[x] || x || "—";
 }
 
+const INV_NAME = {
+  fiveYearRanks: "近五年排名",
+  titleOdds: "夺冠赔率",
+  openings: "开盘让步",
+  commonOpponents: "共同对手",
+  homeGd: "主场进失",
+  awayGd: "客场进失",
+  ranks: "联赛排名",
+  form: "近况",
+  jcEuro: "体彩欧赔",
+  pinEuro: "平博欧赔",
+  pinAh: "平博亚盘",
+  prestige: "底蕴",
+};
+
 function GuangshiBox({ g }) {
   if (!g) return null;
   const inv = g.inventory || {};
-  const got = Object.entries(inv).filter(([, v]) => v).map(([k]) => k);
-  const miss = Object.entries(inv).filter(([, v]) => !v).map(([k]) => k);
+  const got = Object.entries(inv).filter(([, v]) => v).map(([k]) => INV_NAME[k] || k);
+  const miss = Object.entries(inv).filter(([, v]) => !v).map(([k]) => INV_NAME[k] || k);
   return (
     <details open>
       <summary>广实推论（不改盘口 μ）</summary>
