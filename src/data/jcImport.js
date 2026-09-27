@@ -257,17 +257,13 @@ export function normalizeResults(payload, filename = "") {
 }
 
 export function mergeImported(existing, current) {
-  const incomingIds = new Set((current.matches || []).map((r) => r.jcId));
-  const byId = new Map();
-  for (const m of existing || []) {
-    const id = m.jcId || m.id;
-    if (m.jc?.imported || incomingIds.has(id)) byId.set(id, m);
-  }
-  for (const row of current.matches || []) {
-    const existingRow = byId.get(row.jcId) || { id: row.jcId, jcId: row.jcId };
-    byId.set(row.jcId, {
+  const prev = new Map((existing || []).map((m) => [m.jcId || m.id, m]));
+  return (current.matches || []).map((row) => {
+    const existingRow = prev.get(row.jcId) || { id: row.jcId, jcId: row.jcId };
+    return {
       ...existingRow,
       ...row,
+      seed: false,
       id: existingRow.id || row.jcId,
       jc: {
         imported: true,
@@ -285,9 +281,8 @@ export function mergeImported(existing, current) {
       kickoffAt: row.kickoffAt || existingRow.kickoffAt,
       home: row.home || existingRow.home,
       away: row.away || existingRow.away,
-    });
-  }
-  return [...byId.values()];
+    };
+  });
 }
 
 export function importReceipt(current, previous) {
