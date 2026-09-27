@@ -1,0 +1,29 @@
+{
+  "name": "evidencebrain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "证据脑 — 方向跟证据，盘口只对照",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/server/index.js",
+    "dev:ui": "vite",
+    "build": "vite build",
+    "start": "NODE_ENV=production node src/server/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "hash": "node scripts/hash-calc.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
+  }
+}

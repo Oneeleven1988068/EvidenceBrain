@@ -1,0 +1,10 @@
+{
+  "name": "证据脑 EvidenceBrain",
+  "short_name": "证据脑",
+  "description": "方向跟证据，盘口只对照",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "zh-Hans"
+}
