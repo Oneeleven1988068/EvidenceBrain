@@ -7,10 +7,17 @@ import {
   inferFromOpening,
   intervalFromDiff,
   lockMidtable,
+  mathCannotOverride,
+  mathGuangshi,
+  mathMapScore,
   nearestFiftyAh,
+  opponentQuality,
   openVsInterval,
   panNeng,
+  rankSituation,
+  reviseAuthority,
   scoreSide,
+  seasonPhase,
   williamInterval,
 } from "../src/model/guangshi.js";
 import { analyzeMatch } from "../src/model/pipeline.js";
@@ -266,6 +273,123 @@ describe("接入每场且不改盘口 μ", () => {
     expect(a.bookMuUnchanged).toBe(true);
     expect(a.guangshi.note).toMatch(/不改盘口/);
     expect(a.fit.lambdaHome).toBeTruthy();
+  });
+});
+
+describe("第一篇：两把尺子与对手质量", () => {
+  it("克罗地亚账面9分赢的全是弱队，加纳少4分却从强队拿1分", () => {
+    const cro = opponentQuality(
+      [
+        { gf: 2, ga: 0, oppNum: 9 },
+        { gf: 1, ga: 0, oppNum: 8 },
+        { gf: 3, ga: 1, oppNum: 9 },
+        { gf: 0, ga: 2, oppNum: 3 },
+        { gf: 1, ga: 3, oppNum: 4 },
+        { gf: 0, ga: 1, oppNum: 2 },
+      ],
+      5,
+    );
+    const gha = opponentQuality(
+      [
+        { gf: 0, ga: 0, oppNum: 3 },
+        { gf: 1, ga: 0, oppNum: 8 },
+        { gf: 0, ga: 2, oppNum: 4 },
+        { gf: 0, ga: 1, oppNum: 2 },
+        { gf: 1, ga: 1, oppNum: 7 },
+        { gf: 0, ga: 2, oppNum: 6 },
+      ],
+      6,
+    );
+    expect(cro.surfacePts).toBe(9);
+    expect(cro.cheapWins).toBe(3);
+    expect(cro.vsStrongPts).toBe(0);
+    expect(gha.surfacePts).toBe(5);
+    expect(gha.vsStrongPts).toBe(1);
+    expect(cro.surfacePts - gha.surfacePts).toBe(4);
+    expect(Math.abs(cro.vsStrongPts - gha.vsStrongPts)).toBeLessThan(4);
+    expect(cro.note).toMatch(/弱队|含金量/);
+  });
+
+  it("一场球只提醒，不改档；上一轮偏了才修半档", () => {
+    const remind = reviseAuthority({ prevNum: 7, proposedNum: 8 });
+    expect(remind.num).toBe(7);
+    expect(remind.role).toBe("提醒");
+    const gift = reviseAuthority({ prevNum: 7, proposedNum: 8.5, opponentGifted: true });
+    expect(gift.num).toBe(7);
+    const mallorca = reviseAuthority({ prevNum: 8.5, proposedNum: 8, lastRoundBiased: true });
+    expect(mallorca.num).toBe(8);
+    expect(mallorca.role).toBe("修正偏估");
+    expect(guangshiDiff(8, 7)).toBe(1);
+    expect(guangshiDiff(8.5, 7)).toBe(1.5);
+  });
+
+  it("西甲马洛卡对瓦伦西亚：33轮差1.5，34轮证据修回1档", () => {
+    const a = analyzeMatch({
+      id: "mll-val",
+      jcId: "演示马洛卡",
+      leagueAbbName: "西甲",
+      businessDate: "2026-05-10",
+      kickoffAt: "2026-05-10T19:00:00.000Z",
+      home: "马洛卡",
+      away: "瓦伦西亚",
+      guangshiPreset: {
+        home: { name: "中下", prevNum: 8.5, lastRoundBiased: true },
+        away: { name: "中游" },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-05-10T10:00:00.000Z", had: { home: 2.4, draw: 3.1, away: 2.9 } },
+    }, new Date("2026-05-10T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(1);
+    expect(a.guangshi.diffText).toBe("客高1档");
+    expect(a.guangshi.rulers.revisions[0].role).toBe("修正偏估");
+    expect(a.guangshi.rulers.authority.diff).toBe(1);
+    expect(a.bookMuUnchanged).toBe(true);
+  });
+
+  it("数学广实同一评分必落同一档，且不能改权威差", () => {
+    expect(mathMapScore(0.9)).toBe(1);
+    expect(mathMapScore(0.9)).toBe(mathMapScore(0.9));
+    expect(mathMapScore(0.3)).toBe(7);
+    const check = mathCannotOverride(7, 6);
+    expect(check.override).toBe(false);
+    expect(check.halfTier).toBe(true);
+    const math = mathGuangshi({
+      gf: 10,
+      ga: 12,
+      played: 10,
+      rank: 18,
+      recent: [
+        { gf: 0, ga: 2, oppNum: 3 },
+        { gf: 1, ga: 1, oppNum: 7 },
+      ],
+      tierNum: 7,
+    });
+    expect(math.role).toBe("校准");
+    expect(math.formula).toMatch(/不用排名/);
+    const a = analyzeMatch({
+      id: "rank-panic",
+      jcId: "演示排名",
+      leagueAbbName: "英超",
+      businessDate: "2026-09-28",
+      kickoffAt: "2026-09-28T19:00:00.000Z",
+      home: "伯恩茅斯",
+      away: "埃弗顿",
+      guangshiPreset: { home: { name: "中游" }, away: { name: "中游" } },
+      standing: { home: { rank: 18, played: 20 }, away: { rank: 10, played: 20 } },
+      fundamentals: {
+        home: { gf: 18, ga: 22, played: 20, rank: 18, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+        away: { gf: 20, ga: 20, played: 20, rank: 10, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-09-28T10:00:00.000Z", had: { home: 2.5, draw: 3.2, away: 2.8 } },
+    }, new Date("2026-09-28T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(0);
+    expect(a.guangshi.rulers.authority.diff).toBe(0);
+    expect(a.guangshi.rulers.math.diff).not.toBeUndefined();
+    if (a.guangshi.rulers.math.diff != null) {
+      expect(a.guangshi.diff).toBe(a.guangshi.rulers.authority.diff);
+    }
+    expect(a.guangshi.rulers.rank.home.kind).toBe("排名恐慌");
+    expect(seasonPhase(8, 38).phase).toBe("赛季初");
+    expect(seasonPhase(20, 38).phase).toBe("维护期");
   });
 });
 

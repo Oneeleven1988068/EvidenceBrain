@@ -1,6 +1,7 @@
 /**
  * 广实推论。档不是现成库，先钉中游，再用开盘和盘能反推。
- * 打分不看赔率。对照价格时不改盘口 μ。
+ * 第一篇：档位不是排名；当轮权威表算差；数学广实只校准、不能越权；
+ * 一场球可以提醒，不能单独判刑。打分不看赔率。对照价格时不改盘口 μ。
  */
 import { gridOf, oneXTwo } from "../calc/dixonColes.js";
 import { ahFair } from "../calc/settle.js";
@@ -289,6 +290,196 @@ export function formPoints(matches, selfNum, { lastN = 5, strip = true } = {}) {
     kept.push(m);
   }
   return { pts, stripped, n: slice.length, kept, max: lastN * 3 };
+}
+
+/**
+ * 表面战绩 vs 对手含金量。赢弱队的分不当硬仗，强队身上拿的分才算金。
+ * 克罗地亚近6场3胜3负账面9分，赢的全是弱队、强硬仗0分；加纳账面少4分，却从强队拿了1分。
+ */
+export function opponentQuality(matches, selfNum) {
+  const rows = matches || [];
+  let surfacePts = 0;
+  let goldPts = 0;
+  let cheapWins = 0;
+  let vsStrong = 0;
+  let vsStrongPts = 0;
+  for (const m of rows) {
+    if (m?.gf == null || m?.ga == null) continue;
+    const win = m.gf > m.ga;
+    const draw = m.gf === m.ga;
+    const pts = win ? 3 : draw ? 1 : 0;
+    surfacePts += pts;
+    const opp = m.oppNum ?? MIDTABLE;
+    const self = selfNum ?? MIDTABLE;
+    const muchWeaker = opp - self >= 2;
+    const tough = opp <= self + 0.5;
+    if (muchWeaker && win) cheapWins += 1;
+    if (tough) {
+      vsStrong += 1;
+      vsStrongPts += pts;
+      goldPts += pts;
+    }
+  }
+  let note = "对手质量已拆开";
+  if (cheapWins && vsStrong && vsStrongPts === 0) {
+    note = "赢的全是弱队，强硬仗没拿分，账面战绩含金量不足";
+  } else if (cheapWins) {
+    note = "表面战绩混着打弱队的分，对手质量要拆开看";
+  }
+  return {
+    n: rows.length,
+    surfacePts,
+    goldPts,
+    cheapWins,
+    vsStrong,
+    vsStrongPts,
+    maxGold: vsStrong * 3,
+    note,
+  };
+}
+
+/**
+ * 逐轮改档。第一轮是起点。一场球只提醒，连续证据或阵容真变了才最多改半档。
+ * 上一轮偏了，下一轮拿到证据修回来；不能为面子守旧，也不能一场来回跳。
+ */
+export function reviseAuthority({
+  prevNum,
+  proposedNum,
+  consecutiveSameDirection = false,
+  squadChanged = false,
+  opponentGifted = false,
+  lastRoundBiased = false,
+} = {}) {
+  if (prevNum == null && proposedNum == null) {
+    return { num: null, role: "未定", note: "还没有档" };
+  }
+  if (prevNum == null) {
+    return { num: proposedNum, role: "起点", note: "第一轮的档位是起点" };
+  }
+  if (proposedNum == null) {
+    return { num: prevNum, role: "维持", note: "本轮没有新证据" };
+  }
+  const delta = Number(proposedNum) - Number(prevNum);
+  if (delta === 0) {
+    return { num: prevNum, role: "维持", note: "本轮不改档" };
+  }
+  if (opponentGifted && !consecutiveSameDirection && !squadChanged) {
+    return {
+      num: prevNum,
+      role: "提醒",
+      proposedNum,
+      note: "对手刚好送出机会，一场球可以提醒，不能单独判刑",
+    };
+  }
+  if (!consecutiveSameDirection && !squadChanged && !lastRoundBiased) {
+    return {
+      num: prevNum,
+      role: "提醒",
+      proposedNum,
+      note: "一场球可以提醒，不能单独判刑",
+    };
+  }
+  const step = Math.sign(delta) * Math.min(0.5, Math.abs(delta));
+  return {
+    num: Number(prevNum) + step,
+    role: lastRoundBiased ? "修正偏估" : "逐轮维护",
+    moved: step,
+    proposedNum,
+    note: lastRoundBiased
+      ? "上一轮偏了，本轮拿到证据修回来"
+      : "连续证据或阵容变化，本轮最多改半档",
+  };
+}
+
+/** 数学广实评分→档，区间先锁死。第二篇公式未到，不用排名当实力。 */
+export const MATH_BANDS = [
+  { min: 0.88, num: 1 },
+  { min: 0.78, num: 2 },
+  { min: 0.68, num: 3 },
+  { min: 0.58, num: 4 },
+  { min: 0.48, num: 5 },
+  { min: 0.38, num: 6 },
+  { min: 0.28, num: 7 },
+  { min: 0.18, num: 8 },
+  { min: 0, num: 9 },
+];
+
+export function mathMapScore(score) {
+  if (score == null || !Number.isFinite(Number(score))) return null;
+  const s = Math.max(0, Math.min(1, Number(score)));
+  for (const b of MATH_BANDS) {
+    if (s >= b.min) return b.num;
+  }
+  return 9;
+}
+
+export function mathGuangshi(side = {}) {
+  const gd = normGd(side.gf, side.ga, side.played);
+  const q = opponentQuality(side.season || side.recent || [], side.tierNum);
+  const goldN = q.maxGold ? q.goldPts / q.maxGold : q.n ? 0 : null;
+  if (gd == null && goldN == null) {
+    return {
+      status: "未接入",
+      role: "校准",
+      formula: "待第二篇",
+      reason: "缺赛季主客场表现",
+      quality: q,
+    };
+  }
+  const score = gd != null && goldN != null ? 0.55 * gd + 0.45 * goldN : (gd ?? goldN);
+  const num = mathMapScore(score);
+  return {
+    status: "已计算",
+    role: "校准",
+    num,
+    name: nameOf(num),
+    score,
+    quality: q,
+    formula: "待第二篇锁公式；现只用赛季进失+对手含金量，不用排名当实力",
+  };
+}
+
+export function mathCannotOverride(authorityNum, mathNum) {
+  if (authorityNum == null || mathNum == null) {
+    return { override: false, drift: null, note: "数学广实不能越过权威替它做决定" };
+  }
+  const drift = Number(mathNum) - Number(authorityNum);
+  return {
+    override: false,
+    drift,
+    halfTier: Math.abs(drift) >= 0.5,
+    note: Math.abs(drift) >= 0.5
+      ? "数学广实提醒偏了半档以上，不能越过权威替它做决定"
+      : "数学广实只校准，单轮差仍读当轮权威表",
+  };
+}
+
+export function rankSituation(rank, teams, authNum) {
+  if (rank == null || authNum == null) return null;
+  const size = teams || 20;
+  const panic = rank >= size - 2 && authNum <= MIDTABLE;
+  return {
+    kind: panic ? "排名恐慌" : "排名不是实力",
+    rank,
+    authNum,
+    note: panic
+      ? "排名制造恐慌时提醒：处境很危险，真正实力位置没有一起掉下去"
+      : "排名记录的是已经拿到的分，混着赛程对手运气，不当实力档",
+  };
+}
+
+export function seasonPhase(played, rounds) {
+  if (!rounds || played == null) {
+    return { phase: "未知", authorityLabel: "当轮权威表" };
+  }
+  if (played < Math.ceil(rounds / 3)) {
+    return {
+      phase: "赛季初",
+      authorityLabel: "赛季初参考",
+      note: "赛季初只做参考，单轮广实差仍只读当轮权威表",
+    };
+  }
+  return { phase: "维护期", authorityLabel: "当轮权威表" };
 }
 
 function normGd(gf, ga, played) {
@@ -580,11 +771,76 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     awayNum = applyPedigree(awayNum, parseTierName(preset.away.prestige), preset.away.pedigree ?? 0);
   }
 
-  const diff = guangshiDiff(homeNum, awayNum);
-  const diffText = describeDiff(diff);
-  const expected = intervalFromDiff(diff);
+  const revisions = [];
+  if (preset.home?.prevNum != null) {
+    const rev = reviseAuthority({
+      prevNum: preset.home.prevNum,
+      proposedNum: homeNum,
+      consecutiveSameDirection: preset.home.consecutive === true,
+      squadChanged: preset.home.squadChanged === true,
+      opponentGifted: preset.home.opponentGifted === true,
+      lastRoundBiased: preset.home.lastRoundBiased === true,
+    });
+    homeNum = rev.num;
+    revisions.push({ side: "home", ...rev });
+  }
+  if (preset.away?.prevNum != null) {
+    const rev = reviseAuthority({
+      prevNum: preset.away.prevNum,
+      proposedNum: awayNum,
+      consecutiveSameDirection: preset.away.consecutive === true,
+      squadChanged: preset.away.squadChanged === true,
+      opponentGifted: preset.away.opponentGifted === true,
+      lastRoundBiased: preset.away.lastRoundBiased === true,
+    });
+    awayNum = rev.num;
+    revisions.push({ side: "away", ...rev });
+  }
 
   const fund = match.fundamentals || {};
+  const homeQuality = opponentQuality(fund.home?.recent || fund.home?.season || [], homeNum);
+  const awayQuality = opponentQuality(fund.away?.recent || fund.away?.season || [], awayNum);
+  const homeMath = mathGuangshi({ ...fund.home, tierNum: homeNum });
+  const awayMath = mathGuangshi({ ...fund.away, tierNum: awayNum });
+  const homeCheck = mathCannotOverride(homeNum, homeMath.num);
+  const awayCheck = mathCannotOverride(awayNum, awayMath.num);
+  const played = fund.home?.played ?? fund.away?.played ?? match.standing?.home?.played;
+  const phase = seasonPhase(played, league.catalog?.rounds);
+  const homeRankNote = rankSituation(fund.home?.rank ?? match.standing?.home?.rank, fund.home?.teams || league.catalog?.teams, homeNum);
+  const awayRankNote = rankSituation(fund.away?.rank ?? match.standing?.away?.rank, fund.away?.teams || league.catalog?.teams, awayNum);
+
+  const diff = guangshiDiff(homeNum, awayNum);
+  const mathDiff = guangshiDiff(homeMath.num, awayMath.num);
+  const diffText = describeDiff(diff);
+  const expected = intervalFromDiff(diff);
+  const rulers = {
+    authority: {
+      home: homeNum,
+      away: awayNum,
+      diff,
+      label: phase.authorityLabel,
+      note: "单轮广实差只读当轮权威表",
+    },
+    math: {
+      home: homeMath.num ?? null,
+      away: awayMath.num ?? null,
+      diff: mathDiff,
+      homeSide: homeMath,
+      awaySide: awayMath,
+      label: "数学广实",
+      note: "只校准，不能越过权威替它做决定",
+    },
+    drift: {
+      home: homeCheck,
+      away: awayCheck,
+      halfTier: Boolean(homeCheck.halfTier || awayCheck.halfTier || (diff != null && mathDiff != null && Math.abs(diff - mathDiff) >= 0.5)),
+    },
+    quality: { home: homeQuality, away: awayQuality },
+    rank: { home: homeRankNote, away: awayRankNote },
+    phase,
+    revisions,
+  };
+
   const homeScore = scoreSide({ ...fund.home, tierNum: homeNum, venue: "home", teams: fund.home?.teams || league.catalog?.teams });
   const awayScore = scoreSide({ ...fund.away, tierNum: awayNum, venue: "away", teams: fund.away?.teams || league.catalog?.teams });
 
@@ -645,8 +901,8 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     locked,
     ladder,
     inferred,
-    home: { num: homeNum, name: nameOf(homeNum), score: homeScore },
-    away: { num: awayNum, name: nameOf(awayNum), score: awayScore },
+    home: { num: homeNum, name: nameOf(homeNum), score: homeScore, ruler: "authority" },
+    away: { num: awayNum, name: nameOf(awayNum), score: awayScore, ruler: "authority" },
     diff,
     diffText: diffText.text,
     homeStrongerBy: diffText.homeStrongerBy,
@@ -659,6 +915,7 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     pinFifty,
     hot,
     inventory: inv,
-    note: "广实不改盘口 μ，进球 μ 不被这栏改写",
+    rulers,
+    note: "广实差只读当轮权威表；数学广实只校准；不改盘口 μ",
   };
 }
