@@ -7,14 +7,30 @@ import {
   inferFromOpening,
   intervalFromDiff,
   lockMidtable,
+  mathCannotOverride,
+  mathGuangshi,
+  mathMapScore,
   nearestFiftyAh,
+  opponentQuality,
   openVsInterval,
   panNeng,
+  rankSituation,
+  reviseAuthority,
   scoreSide,
+  seasonPhase,
+  applyVenueDragon,
+  distributionFromGd,
+  verifyOddsDirection,
+  locateGuangshi,
+  derbyRead,
+  recentTrend,
+  hardStrength,
+  marketImage,
   williamInterval,
 } from "../src/model/guangshi.js";
 import { analyzeMatch } from "../src/model/pipeline.js";
-import { describeDiff, guangshiDiff, nameOf, parseTierName } from "../src/league/tiers.js";
+import { mergeImported } from "../src/ui/localApi.js";
+import { describeDiff, guangshiDiff, nameOf, nameOfLeague, parseTierName } from "../src/league/tiers.js";
 
 describe("档本身", () => {
   it("九档数字越小越强，相邻可半档", () => {
@@ -24,24 +40,25 @@ describe("档本身", () => {
     expect(nameOf(3)).toBe("普强");
     expect(nameOf(3.5)).toBe("普强/准强");
   });
-  it("广实差=主减客，负一档=主高一档", () => {
-    expect(guangshiDiff(3, 4)).toBe(-1);
-    expect(describeDiff(-1).text).toBe("主高1档");
-    expect(describeDiff(-0.5).text).toBe("主高0.5档");
+  it("广实差=客减主，正数主强，负数客强", () => {
+    expect(guangshiDiff(6, 7)).toBe(1);
+    expect(guangshiDiff(5, 3.5)).toBe(-1.5);
+    expect(describeDiff(1).text).toBe("主强1档");
+    expect(describeDiff(-1.5).text).toBe("客强1.5档");
     expect(describeDiff(0).text).toBe("同档");
   });
 });
 
 describe("差对开盘区间", () => {
-  it("同档平半、主高半档半球、主高一档半一、主高1.5一球", () => {
+  it("同档平半、主强半档半球、主强一档半一、主强1.5一球", () => {
     expect(intervalFromDiff(0)).toMatchObject({ n: 2, expectedAh: -0.25 });
-    expect(intervalFromDiff(-0.5)).toMatchObject({ n: 3, expectedAh: -0.5 });
-    expect(intervalFromDiff(-1)).toMatchObject({ n: 4, expectedAh: -0.75 });
-    expect(intervalFromDiff(-1.5)).toMatchObject({ n: 5, expectedAh: -1 });
+    expect(intervalFromDiff(0.5)).toMatchObject({ n: 3, expectedAh: -0.5 });
+    expect(intervalFromDiff(1)).toMatchObject({ n: 4, expectedAh: -0.75 });
+    expect(intervalFromDiff(1.5)).toMatchObject({ n: 5, expectedAh: -1 });
   });
   it("客队更强整表下移", () => {
-    expect(intervalFromDiff(0.5)).toMatchObject({ n: 1, expectedAh: 0 });
-    expect(intervalFromDiff(1)).toMatchObject({ n: 2, expectedAh: 0.25 });
+    expect(intervalFromDiff(-0.5)).toMatchObject({ n: 1, expectedAh: 0 });
+    expect(intervalFromDiff(-1)).toMatchObject({ n: 2, expectedAh: 0.25 });
   });
   it("威廉 94 锚点", () => {
     expect(williamInterval(2.2).name).toBe("二区间");
@@ -55,7 +72,7 @@ describe("差对开盘区间", () => {
     expect(read.william.name).toBe("三区间");
   });
   it("塞维利亚主场 1.62 对主高1.5=五区间，开在档上", () => {
-    const expected = intervalFromDiff(-1.5);
+    const expected = intervalFromDiff(1.5);
     expect(openVsInterval(expected, 1.62).kind).toBe("开在档上");
   });
 });
@@ -259,11 +276,274 @@ describe("接入每场且不改盘口 μ", () => {
       },
     };
     const a = analyzeMatch(m, new Date("2026-09-28T11:00:00.000Z"));
-    expect(a.guangshi.diff).toBe(4);
+    expect(a.guangshi.diff).toBe(-4);
     expect(a.guangshi.expected.expectedAh).toBe(0.75);
     expect(a.guangshi.vs.depth.kind).toBe("让浅");
     expect(a.bookMuUnchanged).toBe(true);
     expect(a.guangshi.note).toMatch(/不改盘口/);
     expect(a.fit.lambdaHome).toBeTruthy();
+  });
+});
+
+describe("第一篇：两把尺子与对手质量", () => {
+  it("克罗地亚账面9分赢的全是弱队，加纳少4分却从强队拿1分", () => {
+    const cro = opponentQuality(
+      [
+        { gf: 2, ga: 0, oppNum: 9 },
+        { gf: 1, ga: 0, oppNum: 8 },
+        { gf: 3, ga: 1, oppNum: 9 },
+        { gf: 0, ga: 2, oppNum: 3 },
+        { gf: 1, ga: 3, oppNum: 4 },
+        { gf: 0, ga: 1, oppNum: 2 },
+      ],
+      5,
+    );
+    const gha = opponentQuality(
+      [
+        { gf: 0, ga: 0, oppNum: 3 },
+        { gf: 1, ga: 0, oppNum: 8 },
+        { gf: 0, ga: 2, oppNum: 4 },
+        { gf: 0, ga: 1, oppNum: 2 },
+        { gf: 1, ga: 1, oppNum: 7 },
+        { gf: 0, ga: 2, oppNum: 6 },
+      ],
+      6,
+    );
+    expect(cro.surfacePts).toBe(9);
+    expect(cro.cheapWins).toBe(3);
+    expect(cro.vsStrongPts).toBe(0);
+    expect(gha.surfacePts).toBe(5);
+    expect(gha.vsStrongPts).toBe(1);
+    expect(cro.surfacePts - gha.surfacePts).toBe(4);
+    expect(Math.abs(cro.vsStrongPts - gha.vsStrongPts)).toBeLessThan(4);
+    expect(cro.note).toMatch(/弱队|含金量/);
+  });
+
+  it("一场球只提醒，不改档；上一轮偏了才修半档", () => {
+    const remind = reviseAuthority({ prevNum: 7, proposedNum: 8 });
+    expect(remind.num).toBe(7);
+    expect(remind.role).toBe("提醒");
+    const gift = reviseAuthority({ prevNum: 7, proposedNum: 8.5, opponentGifted: true });
+    expect(gift.num).toBe(7);
+    const mallorca = reviseAuthority({ prevNum: 8.5, proposedNum: 8, lastRoundBiased: true });
+    expect(mallorca.num).toBe(8);
+    expect(mallorca.role).toBe("修正偏估");
+    expect(guangshiDiff(8, 7)).toBe(-1);
+    expect(guangshiDiff(8.5, 7)).toBe(-1.5);
+  });
+
+  it("西甲马洛卡对瓦伦西亚：33轮差1.5，34轮证据修回1档", () => {
+    const a = analyzeMatch({
+      id: "mll-val",
+      jcId: "演示马洛卡",
+      leagueAbbName: "西甲",
+      businessDate: "2026-05-10",
+      kickoffAt: "2026-05-10T19:00:00.000Z",
+      home: "马洛卡",
+      away: "瓦伦西亚",
+      guangshiPreset: {
+        home: { name: "中下", prevNum: 8.5, lastRoundBiased: true },
+        away: { name: "中游" },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-05-10T10:00:00.000Z", had: { home: 2.4, draw: 3.1, away: 2.9 } },
+    }, new Date("2026-05-10T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(-1);
+    expect(a.guangshi.diffText).toBe("客强1档");
+    expect(a.guangshi.rulers.revisions[0].role).toBe("修正偏估");
+    expect(a.guangshi.rulers.authority.diff).toBe(-1);
+    expect(a.bookMuUnchanged).toBe(true);
+  });
+
+  it("数学广实同一评分必落同一档，且不能改权威差", () => {
+    expect(mathMapScore(0.9)).toBe(1);
+    expect(mathMapScore(0.9)).toBe(mathMapScore(0.9));
+    expect(mathMapScore(0.3)).toBe(7);
+    const check = mathCannotOverride(7, 6);
+    expect(check.override).toBe(false);
+    expect(check.halfTier).toBe(true);
+    const math = mathGuangshi({
+      gf: 10,
+      ga: 12,
+      played: 10,
+      rank: 18,
+      recent: [
+        { gf: 0, ga: 2, oppNum: 3 },
+        { gf: 1, ga: 1, oppNum: 7 },
+      ],
+      tierNum: 7,
+    });
+    expect(math.role).toBe("校准");
+    expect(math.formula).toMatch(/不用排名/);
+    const a = analyzeMatch({
+      id: "rank-panic",
+      jcId: "演示排名",
+      leagueAbbName: "英超",
+      businessDate: "2026-09-28",
+      kickoffAt: "2026-09-28T19:00:00.000Z",
+      home: "伯恩茅斯",
+      away: "埃弗顿",
+      guangshiPreset: { home: { name: "中游" }, away: { name: "中游" } },
+      standing: { home: { rank: 18, played: 20 }, away: { rank: 10, played: 20 } },
+      fundamentals: {
+        home: { gf: 18, ga: 22, played: 20, rank: 18, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+        away: { gf: 20, ga: 20, played: 20, rank: 10, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-09-28T10:00:00.000Z", had: { home: 2.5, draw: 3.2, away: 2.8 } },
+    }, new Date("2026-09-28T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(0);
+    expect(a.guangshi.rulers.authority.diff).toBe(0);
+    expect(a.guangshi.rulers.math.diff).not.toBeUndefined();
+    if (a.guangshi.rulers.math.diff != null) {
+      expect(a.guangshi.diff).toBe(a.guangshi.rulers.authority.diff);
+    }
+    expect(a.guangshi.rulers.rank.home.kind).toBe("排名恐慌");
+    expect(seasonPhase(8, 38).phase).toBe("赛季初");
+    expect(seasonPhase(20, 38).phase).toBe("维护期");
+  });
+});
+
+describe("第二篇：GD=客减主，分布与赔率", () => {
+  it("日职刻度中上5中游6中下7，主场龙减半档", () => {
+    expect(parseTierName("中游", "J1")).toBe(6);
+    expect(parseTierName("中上", "J1")).toBe(5);
+    expect(nameOfLeague(7, "J1")).toBe("中下");
+    expect(applyVenueDragon(6, true)).toBe(5.5);
+    expect(applyVenueDragon(6, false)).toBe(6);
+  });
+
+  it("绝对值定分布：0中庸、1–2缓冲、≥3顺分布", () => {
+    expect(distributionFromGd(0).kind).toBe("中庸");
+    expect(distributionFromGd(1).kind).toBe("缓冲");
+    expect(distributionFromGd(-1.5).kind).toBe("缓冲");
+    expect(distributionFromGd(2).kind).toBe("缓冲");
+    expect(distributionFromGd(-3).kind).toBe("顺分布");
+  });
+
+  it("法国5.0对英格兰3.5：GD=-1.5客强，虐菜后按缓冲，主胜压低诱买", () => {
+    expect(guangshiDiff(5, 3.5)).toBe(-1.5);
+    expect(distributionFromGd(-1.5).kind).toBe("缓冲");
+    const check = verifyOddsDirection({
+      gd: -1.5,
+      distribution: distributionFromGd(-1.5),
+      homeOdds: 1.85,
+      awayOdds: 2.45,
+      cheapHome: true,
+    });
+    expect(check.kind).toBe("诱买");
+    const a = analyzeMatch({
+      id: "fra-eng",
+      jcId: "演示法英",
+      leagueAbbName: "国际赛",
+      businessDate: "2026-06-10",
+      kickoffAt: "2026-06-10T19:00:00.000Z",
+      home: "法国",
+      away: "英格兰",
+      guangshiPreset: { home: { num: 5 }, away: { num: 3.5 } },
+      fundamentals: {
+        home: {
+          gf: 12,
+          ga: 4,
+          played: 6,
+          recent: [
+            { gf: 4, ga: 0, oppNum: 9 },
+            { gf: 3, ga: 0, oppNum: 8 },
+            { gf: 2, ga: 0, oppNum: 9 },
+            { gf: 3, ga: 1, oppNum: 8 },
+            { gf: 2, ga: 0, oppNum: 9 },
+          ],
+        },
+        away: { gf: 8, ga: 5, played: 6, recent: [{ gf: 1, ga: 0, oppNum: 5 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-06-10T10:00:00.000Z", had: { home: 1.85, draw: 3.4, away: 2.45 } },
+    }, new Date("2026-06-10T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(-1.5);
+    expect(a.guangshi.diffText).toBe("客强1.5档");
+    expect(a.guangshi.distribution.kind).toBe("缓冲");
+    expect(a.guangshi.oddsCheck.kind).toBe("诱买");
+    expect(a.guangshi.rulers.quality.home.cheapWins).toBeGreaterThan(0);
+    expect(a.guangshi.motto).toMatch(/符号定强弱/);
+    expect(a.bookMuUnchanged).toBe(true);
+  });
+
+  it("顺分布强队赔率过低判诱强", () => {
+    const d = distributionFromGd(3);
+    expect(verifyOddsDirection({ gd: 3, distribution: d, homeOdds: 1.28, awayOdds: 8 }).kind).toBe("诱强");
+  });
+});
+
+describe("第三段：广实定位三维", () => {
+  it("硬实力没数据就未接入，不编身价", () => {
+    expect(hardStrength({}).status).toBe("未接入");
+    expect(hardStrength({ hard: { squadValue: 120, coach: "稳定" } }).status).toBe("已接入");
+  });
+
+  it("近况能读上升下落低迷，主场龙客场虫分开", () => {
+    const up = recentTrend([
+      { gf: 2, ga: 0 }, { gf: 1, ga: 0 }, { gf: 2, ga: 1 },
+      { gf: 0, ga: 1 }, { gf: 0, ga: 2 }, { gf: 1, ga: 1 },
+    ]);
+    expect(up.trend).toBe("上升");
+    const down = recentTrend([
+      { gf: 0, ga: 2 }, { gf: 0, ga: 1 }, { gf: 1, ga: 3 },
+      { gf: 2, ga: 0 }, { gf: 1, ga: 0 }, { gf: 2, ga: 1 },
+    ]);
+    expect(down.trend).toBe("低迷");
+    expect(recentTrend([], { dragon: "home" }).venue).toBe("主场龙");
+    expect(recentTrend([], { worm: "away" }).venue).toBe("客场虫");
+  });
+
+  it("豪门状态差也不当爆冷，德比平局偏高", () => {
+    const loc = locateGuangshi({
+      pedigree: 0.8,
+      prestige: "超强",
+      recent: [
+        { gf: 0, ga: 2 }, { gf: 1, ga: 3 }, { gf: 0, ga: 1 },
+        { gf: 2, ga: 1 }, { gf: 1, ga: 0 },
+      ],
+    });
+    expect(loc.image.role).toBe("豪门");
+    expect(loc.recent.trend).toBe("低迷");
+    expect(loc.coldUpset).toBe(false);
+    expect(loc.note).toMatch(/不轻易当爆冷/);
+    expect(loc.dynamic).toBe(true);
+    expect(derbyRead({ homeImage: "豪门", awayImage: "传统强队" }).drawBias).toBe(true);
+    expect(derbyRead({ homeImage: "中游", awayImage: "中游" }).drawBias).toBe(false);
+  });
+
+  it("接入分析后定位跟着走，不改盘口 μ", () => {
+    const a = analyzeMatch({
+      id: "big-slump",
+      jcId: "演示豪门",
+      leagueAbbName: "英超",
+      businessDate: "2026-09-28",
+      kickoffAt: "2026-09-28T19:00:00.000Z",
+      home: "曼联",
+      away: "伯恩茅斯",
+      derby: false,
+      guangshiPreset: { home: { name: "准强", prestige: "人强", pedigree: 0.8 }, away: { name: "中游" } },
+      fundamentals: {
+        home: {
+          gf: 10, ga: 14, played: 8, rank: 12, teams: 20,
+          recent: [{ gf: 0, ga: 2 }, { gf: 0, ga: 1 }, { gf: 1, ga: 3 }],
+        },
+        away: { gf: 9, ga: 10, played: 8, rank: 11, teams: 20, recent: [{ gf: 1, ga: 1, oppNum: 7 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-09-28T10:00:00.000Z", had: { home: 1.7, draw: 3.6, away: 5.0 } },
+    }, new Date("2026-09-28T12:00:00.000Z"));
+    expect(a.guangshi.locate.home.image.role).toBe("豪门");
+    expect(a.guangshi.locate.home.coldUpset).toBe(false);
+    expect(a.bookMuUnchanged).toBe(true);
+  });
+});
+
+describe("手机静态页导入", () => {
+  it("合并导入不丢已有广实预设", () => {
+    const next = mergeImported(
+      [{ id: "che-mci", jcId: "演示切城", guangshiPreset: { home: { name: "准强" } }, home: "切尔西" }],
+      { matches: [{ jcId: "演示切城", businessDate: "2026-09-28", had: { home: 2.6, draw: 3.3, away: 2.5 }, jc_points: 3, snapshot_at: "t" }] },
+    );
+    expect(next[0].guangshiPreset.home.name).toBe("准强");
+    expect(next[0].jc.had.home).toBe(2.6);
+    expect(next[0].home).toBe("切尔西");
   });
 });

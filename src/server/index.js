@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readJson, writeJson } from "./store.js";
 import { buildSlate, exportDay, boardStats } from "./slate.js";
-import { normalizeImport, importReceipt } from "../data/jcImport.js";
+import { normalizeImport, importReceipt, mergeImported } from "../data/jcImport.js";
 import { fetchPinnacle } from "../data/titan.js";
 import { matchDetails, matchesByDate, tryFpl, tryTransfermarkt, lineupFromDetails, unavailableFromDetails } from "../data/fotmob.js";
 import { createHash } from "node:crypto";
@@ -73,28 +73,7 @@ app.post("/api/import", async (req, res) => {
   const prev = await readJson("jc-last.json", null);
   const receipt = importReceipt(current, prev);
   const matches = await readJson("matches.json", []);
-  const byId = new Map(matches.map((m) => [m.jcId || m.id, m]));
-  for (const row of current.matches) {
-    const existing = byId.get(row.jcId) || { id: row.jcId, jcId: row.jcId };
-    byId.set(row.jcId, {
-      ...existing,
-      ...row,
-      jc: {
-        imported: true,
-        jc_points: row.jc_points,
-        snapshot_at: row.snapshot_at,
-        had: row.had,
-        hhad: row.hhad,
-        hhad_line: row.hhad_line,
-      },
-      businessDate: row.businessDate,
-      leagueAbbName: row.leagueAbbName || existing.leagueAbbName,
-      kickoffAt: row.kickoffAt || existing.kickoffAt,
-      home: row.home || existing.home,
-      away: row.away || existing.away,
-    });
-  }
-  await writeJson("matches.json", [...byId.values()]);
+  await writeJson("matches.json", mergeImported(matches, current));
   await writeJson("jc-last.json", current);
   await writeJson("weights.json", (await readJson("weights.json", { lock: null })) );
   res.json(receipt);
