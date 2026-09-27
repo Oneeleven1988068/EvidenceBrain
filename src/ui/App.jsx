@@ -381,7 +381,7 @@ function Detail({ m, onClose }) {
           <div className="muted">{g.motto}</div>
           {g.locate && (
             <>
-              <div className="muted">
+              <div className="gs-line">
                 定位 主 {g.locate.home?.image?.role || "未定"} · {g.locate.home?.recent?.trend || "近况未知"}
                 {g.locate.home?.recent?.venue ? ` · ${g.locate.home.recent.venue}` : ""}
                 {" / "}客 {g.locate.away?.image?.role || "未定"} · {g.locate.away?.recent?.trend || "近况未知"}
