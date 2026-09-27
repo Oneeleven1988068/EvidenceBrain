@@ -14,6 +14,7 @@ import {
   williamInterval,
 } from "../src/model/guangshi.js";
 import { analyzeMatch } from "../src/model/pipeline.js";
+import { mergeImported } from "../src/ui/localApi.js";
 import { describeDiff, guangshiDiff, nameOf, parseTierName } from "../src/league/tiers.js";
 
 describe("档本身", () => {
@@ -265,5 +266,17 @@ describe("接入每场且不改盘口 μ", () => {
     expect(a.bookMuUnchanged).toBe(true);
     expect(a.guangshi.note).toMatch(/不改盘口/);
     expect(a.fit.lambdaHome).toBeTruthy();
+  });
+});
+
+describe("手机静态页导入", () => {
+  it("合并导入不丢已有广实预设", () => {
+    const next = mergeImported(
+      [{ id: "che-mci", jcId: "演示切城", guangshiPreset: { home: { name: "准强" } }, home: "切尔西" }],
+      { matches: [{ jcId: "演示切城", businessDate: "2026-09-28", had: { home: 2.6, draw: 3.3, away: 2.5 }, jc_points: 3, snapshot_at: "t" }] },
+    );
+    expect(next[0].guangshiPreset.home.name).toBe("准强");
+    expect(next[0].jc.had.home).toBe(2.6);
+    expect(next[0].home).toBe("切尔西");
   });
 });

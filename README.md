@@ -38,11 +38,16 @@ npm run dev
 
 这是普通的 Node + 静态网页。可以部署到任何能跑 `npm run build && npm start` 的主机（自己的 VPS、Render、Fly.io 等）。
 
-**iPhone**
+**iPhone（没有电脑也能用）**
 
-- 用 Safari 打开部署后的网址就能用
-- 分享 → 添加到主屏幕，即 PWA，不必上架 App Store
-- 正式上架 App Store 需要你自己的 Apple 开发者账号；Cursor 能写代码，不能替你提审、也不能把 App 装进你的手机
+仓库里的 `docs/` 是打好的静态页，打开后会在手机里算盘、存导入，不需要你自己部署服务器。
+
+1. 用 **Safari**（不要用微信、Chrome）打开静态页地址
+2. 点底部分享（方框加向上箭头）
+3. 滑到「添加到主屏幕」→ 添加
+4. 回桌面点「证据脑」图标，就是独立 PWA
+
+正式上架 App Store 需要你自己的 Apple 开发者账号。Cursor 不能替你提审，也不能把 App 装进手机。
 
 ## 不做的事
 

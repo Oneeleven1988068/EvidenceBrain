@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { downloadJson, getBoard, getExport, getSlate, importJc, serverAlive } from "./localApi.js";
 
 const TIER_LABEL = {
   dev: "有偏离",
@@ -54,11 +55,17 @@ export default function App() {
 
   async function reload() {
     try {
-      const s = await jget("/api/slate");
+      const useServer = await serverAlive();
+      const s = useServer ? await jget("/api/slate") : getSlate();
       setSlate(s);
       setErr("");
     } catch (e) {
-      setErr(String(e.message || e));
+      try {
+        setSlate(getSlate());
+        setErr("");
+      } catch (inner) {
+        setErr(String(inner.message || inner));
+      }
     }
   }
 
@@ -100,7 +107,18 @@ export default function App() {
             </button>
           ))}
           <button onClick={reload}>刷新</button>
-          <a href="/api/export"><button>导出 JSON</button></a>
+          <button
+            onClick={async () => {
+              const useServer = await serverAlive();
+              if (useServer) {
+                window.location.href = "/api/export";
+                return;
+              }
+              downloadJson("evidencebrain-export.json", getExport());
+            }}
+          >
+            导出 JSON
+          </button>
         </div>
       </header>
 
@@ -151,7 +169,7 @@ export default function App() {
 
       {tab === "import" && (
         <section className="panel">
-          <p className="muted">体彩只收本地导入。必须带 businessDate。服务器不代理、不借号。</p>
+          <p className="muted">体彩只收本地导入。必须带 businessDate。没有服务器时存在这台手机里，不代理、不借号。</p>
           <textarea
             placeholder='{"businessDate":"2026-09-26","matches":[...]}'
             value={importText}
@@ -163,13 +181,17 @@ export default function App() {
               onClick={async () => {
                 try {
                   const body = JSON.parse(importText);
-                  const r = await fetch("/api/import", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(body),
-                  });
-                  const j = await r.json();
-                  setReceipt(j);
+                  const useServer = await serverAlive();
+                  if (useServer) {
+                    const r = await fetch("/api/import", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(body),
+                    });
+                    setReceipt(await r.json());
+                  } else {
+                    setReceipt(importJc(body));
+                  }
                   await reload();
                 } catch (e) {
                   setReceipt({ ok: false, error: String(e.message || e), red: true });
@@ -199,11 +221,20 @@ export default function App() {
       )}
 
       {tab === "board" && (
-        <Board board={board} load={async () => setBoard(await jget("/api/board"))} />
+        <Board
+          board={board}
+          load={async () => {
+            const useServer = await serverAlive();
+            setBoard(useServer ? await jget("/api/board") : getBoard());
+          }}
+        />
       )}
 
       {open && <Detail m={open} onClose={() => setOpen(null)} onPick={(m) => setParlay((p) => [...p, m])} />}
-      <p className="footer-note">封盘结论周一至周五 21:45，周六日 22:45，或开球前 30 分钟，取较早者。时间一律 HKT。</p>
+      <p className="footer-note">
+        封盘结论周一至周五 21:45，周六日 22:45，或开球前 30 分钟，取较早者。时间一律 HKT。
+        iPhone：用 Safari 打开本页 → 底部分享 → 添加到主屏幕。
+      </p>
     </>
   );
 }
