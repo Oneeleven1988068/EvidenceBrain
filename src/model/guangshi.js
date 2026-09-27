@@ -1,7 +1,9 @@
 /**
  * 广实推论。档不是现成库，先钉中游，再用开盘和盘能反推。
  * 第一篇：档位不是排名；当轮权威表算差；数学广实只校准、不能越权；
- * 一场球可以提醒，不能单独判刑。打分不看赔率。对照价格时不改盘口 μ。
+ * 一场球可以提醒，不能单独判刑。
+ * 第二篇：GD=客档−主档；符号定强弱，绝对值看差距，分布定热度，赔率验方向。
+ * 打分不看赔率。对照价格时不改盘口 μ。
  */
 import { gridOf, oneXTwo } from "../calc/dixonColes.js";
 import { ahFair } from "../calc/settle.js";
@@ -47,9 +49,9 @@ export function williamInterval(decimal) {
 export function intervalFromDiff(diff) {
   if (diff == null) return null;
   const capped = Math.max(-2, Math.min(2, diff));
-  const homeStrongerBy = -capped;
-  const actualBy = -diff;
-  const gapLabel = actualBy === 0 ? "同档" : actualBy > 0 ? `主高${actualBy}档` : `客高${-actualBy}档`;
+  const homeStrongerBy = capped;
+  const actualBy = diff;
+  const gapLabel = actualBy === 0 ? "同档" : actualBy > 0 ? `主强${actualBy}档` : `客强${-actualBy}档`;
   if (homeStrongerBy === 0) {
     return { n: 2, name: "二区间", expectedAh: -0.25, label: `${gapLabel} · 平半` };
   }
@@ -482,6 +484,72 @@ export function seasonPhase(played, rounds) {
   return { phase: "维护期", authorityLabel: "当轮权威表" };
 }
 
+export function applyVenueDragon(num, dragon) {
+  if (num == null) return null;
+  return dragon ? Number(num) - 0.5 : Number(num);
+}
+
+/**
+ * |GD|≥3 顺分布；1–2 缓冲；0 中庸。半档算小优势，走缓冲。
+ * GD 是静态实力差，不直接当赛果。
+ */
+export function distributionFromGd(gd) {
+  if (gd == null || !Number.isFinite(Number(gd))) return null;
+  const n = Number(gd);
+  const abs = Math.abs(n);
+  const stronger = n > 0 ? "home" : n < 0 ? "away" : null;
+  if (abs === 0) return { kind: "中庸", abs, stronger, heat: "两边均衡" };
+  if (abs >= 3) return { kind: "顺分布", abs, stronger, heat: "大众热捧强队" };
+  return { kind: "缓冲", abs, stronger, heat: "热度分散" };
+}
+
+/**
+ * 顺分布看强队赔率是否过低（诱强）；缓冲/中庸看赔率是否被压去诱买。
+ * 赔率含抽水，无稳赢。
+ */
+export function verifyOddsDirection({
+  gd,
+  distribution,
+  homeOdds,
+  awayOdds,
+  cheapHome = false,
+  cheapAway = false,
+} = {}) {
+  if (!distribution) {
+    return { kind: "未验", note: "缺广实差，不能验方向" };
+  }
+  const h = Number(homeOdds);
+  const a = Number(awayOdds);
+  const favOdds = distribution.stronger === "home" ? h : distribution.stronger === "away" ? a : null;
+  if (distribution.kind === "顺分布" && favOdds != null && favOdds <= 1.45) {
+    return {
+      kind: "诱强",
+      note: "顺分布里强队赔率过低，热捧强队，先怀疑诱强",
+      favOdds,
+    };
+  }
+  if ((distribution.kind === "缓冲" || distribution.kind === "中庸") && Number.isFinite(h) && Number.isFinite(a) && h + 0.15 < a) {
+    return {
+      kind: "诱买",
+      note: cheapHome
+        ? "近况有虐菜虚高，主胜被压低诱买"
+        : "缓冲/中庸里主胜偏短，先看是不是诱买",
+      homeOdds: h,
+      awayOdds: a,
+    };
+  }
+  if (cheapHome && distribution.kind === "缓冲") {
+    return { kind: "虚高", note: "近况赢的是弱队，账面档偏高，按缓冲看不要按顺分布追" };
+  }
+  if (cheapAway && distribution.kind === "缓冲") {
+    return { kind: "虚高", note: "客队近况含虐菜，不要把表面连胜当成顺分布" };
+  }
+  return {
+    kind: "平衡",
+    note: distribution.kind === "顺分布" ? "顺分布对照赔率，未见明显诱强" : "缓冲/中庸对照赔率，方向先看平衡",
+  };
+}
+
 function normGd(gf, ga, played) {
   if (gf == null || ga == null || !played) return null;
   const per = (gf - ga) / played;
@@ -615,6 +683,7 @@ export function classifyVsPrice({
   jcHhad,
   hot,
   openRead,
+  oddsCheck,
 }) {
   const price = jcEuro || pinEuro || null;
   const priceSource = jcEuro ? "体彩欧赔" : pinEuro ? "平博欧赔" : "无欧赔";
@@ -623,7 +692,10 @@ export function classifyVsPrice({
   const depth = depthRead(expectedAh, pinAhFifty);
   let kind = "实力方向";
   let note = "广实偏向与价格偏向一致";
-  if (openRead?.kind === "让浅" || (depth && depth.kind === "让浅")) {
+  if (oddsCheck?.kind === "诱强" || oddsCheck?.kind === "诱买") {
+    kind = oddsCheck.kind;
+    note = oddsCheck.note;
+  } else if (openRead?.kind === "让浅" || (depth && depth.kind === "让浅")) {
     if (hot && gsLean && hot !== gsLean) {
       kind = "诱盘";
       note = "表面档/热度在一侧，让步偏浅，拉力在另一边";
@@ -646,6 +718,7 @@ export function classifyVsPrice({
     priceSource,
     hot,
     depth,
+    oddsCheck: oddsCheck || null,
     jcHhad: jcHhad || null,
     jcHhadNote: "体彩让球是玩法盘，只写不判深浅",
   };
@@ -809,18 +882,39 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
   const homeRankNote = rankSituation(fund.home?.rank ?? match.standing?.home?.rank, fund.home?.teams || league.catalog?.teams, homeNum);
   const awayRankNote = rankSituation(fund.away?.rank ?? match.standing?.away?.rank, fund.away?.teams || league.catalog?.teams, awayNum);
 
+  const tableHome = homeNum;
+  const tableAway = awayNum;
+  const homeDragon = preset.home?.dragon === "home" || match.venueDragon?.home === true;
+  const awayDragon = preset.away?.dragon === "away" || match.venueDragon?.away === true;
+  homeNum = applyVenueDragon(homeNum, homeDragon);
+  awayNum = applyVenueDragon(awayNum, awayDragon);
+
   const diff = guangshiDiff(homeNum, awayNum);
   const mathDiff = guangshiDiff(homeMath.num, awayMath.num);
   const diffText = describeDiff(diff);
   const expected = intervalFromDiff(diff);
+  const distribution = distributionFromGd(diff);
+  const oddsCheck = verifyOddsDirection({
+    gd: diff,
+    distribution,
+    homeOdds: match.jc?.had?.home,
+    awayOdds: match.jc?.had?.away,
+    cheapHome: homeQuality.cheapWins > 0,
+    cheapAway: awayQuality.cheapWins > 0,
+  });
   const rulers = {
     authority: {
       home: homeNum,
       away: awayNum,
+      tableHome,
+      tableAway,
       diff,
       label: phase.authorityLabel,
       note: "单轮广实差只读当轮权威表",
+      venueDragon: { home: homeDragon, away: awayDragon },
     },
+    distribution,
+    oddsCheck,
     math: {
       home: homeMath.num ?? null,
       away: awayMath.num ?? null,
@@ -889,6 +983,7 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     jcHhad: match.jc?.hhad || null,
     hot,
     openRead,
+    oddsCheck,
   });
 
   const status = homeNum == null && awayNum == null && homeScore.status === "未接入"
@@ -916,6 +1011,9 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     hot,
     inventory: inv,
     rulers,
-    note: "广实差只读当轮权威表；数学广实只校准；不改盘口 μ",
+    distribution,
+    oddsCheck,
+    motto: "符号定强弱，绝对值看差距，分布定热度，赔率验方向",
+    note: "GD=客档−主档，只读当轮权威表；数学广实只校准；赔率含抽水无稳赢；不改盘口 μ",
   };
 }

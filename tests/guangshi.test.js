@@ -18,11 +18,14 @@ import {
   reviseAuthority,
   scoreSide,
   seasonPhase,
+  applyVenueDragon,
+  distributionFromGd,
+  verifyOddsDirection,
   williamInterval,
 } from "../src/model/guangshi.js";
 import { analyzeMatch } from "../src/model/pipeline.js";
 import { mergeImported } from "../src/ui/localApi.js";
-import { describeDiff, guangshiDiff, nameOf, parseTierName } from "../src/league/tiers.js";
+import { describeDiff, guangshiDiff, nameOf, nameOfLeague, parseTierName } from "../src/league/tiers.js";
 
 describe("档本身", () => {
   it("九档数字越小越强，相邻可半档", () => {
@@ -32,24 +35,25 @@ describe("档本身", () => {
     expect(nameOf(3)).toBe("普强");
     expect(nameOf(3.5)).toBe("普强/准强");
   });
-  it("广实差=主减客，负一档=主高一档", () => {
-    expect(guangshiDiff(3, 4)).toBe(-1);
-    expect(describeDiff(-1).text).toBe("主高1档");
-    expect(describeDiff(-0.5).text).toBe("主高0.5档");
+  it("广实差=客减主，正数主强，负数客强", () => {
+    expect(guangshiDiff(6, 7)).toBe(1);
+    expect(guangshiDiff(5, 3.5)).toBe(-1.5);
+    expect(describeDiff(1).text).toBe("主强1档");
+    expect(describeDiff(-1.5).text).toBe("客强1.5档");
     expect(describeDiff(0).text).toBe("同档");
   });
 });
 
 describe("差对开盘区间", () => {
-  it("同档平半、主高半档半球、主高一档半一、主高1.5一球", () => {
+  it("同档平半、主强半档半球、主强一档半一、主强1.5一球", () => {
     expect(intervalFromDiff(0)).toMatchObject({ n: 2, expectedAh: -0.25 });
-    expect(intervalFromDiff(-0.5)).toMatchObject({ n: 3, expectedAh: -0.5 });
-    expect(intervalFromDiff(-1)).toMatchObject({ n: 4, expectedAh: -0.75 });
-    expect(intervalFromDiff(-1.5)).toMatchObject({ n: 5, expectedAh: -1 });
+    expect(intervalFromDiff(0.5)).toMatchObject({ n: 3, expectedAh: -0.5 });
+    expect(intervalFromDiff(1)).toMatchObject({ n: 4, expectedAh: -0.75 });
+    expect(intervalFromDiff(1.5)).toMatchObject({ n: 5, expectedAh: -1 });
   });
   it("客队更强整表下移", () => {
-    expect(intervalFromDiff(0.5)).toMatchObject({ n: 1, expectedAh: 0 });
-    expect(intervalFromDiff(1)).toMatchObject({ n: 2, expectedAh: 0.25 });
+    expect(intervalFromDiff(-0.5)).toMatchObject({ n: 1, expectedAh: 0 });
+    expect(intervalFromDiff(-1)).toMatchObject({ n: 2, expectedAh: 0.25 });
   });
   it("威廉 94 锚点", () => {
     expect(williamInterval(2.2).name).toBe("二区间");
@@ -63,7 +67,7 @@ describe("差对开盘区间", () => {
     expect(read.william.name).toBe("三区间");
   });
   it("塞维利亚主场 1.62 对主高1.5=五区间，开在档上", () => {
-    const expected = intervalFromDiff(-1.5);
+    const expected = intervalFromDiff(1.5);
     expect(openVsInterval(expected, 1.62).kind).toBe("开在档上");
   });
 });
@@ -267,7 +271,7 @@ describe("接入每场且不改盘口 μ", () => {
       },
     };
     const a = analyzeMatch(m, new Date("2026-09-28T11:00:00.000Z"));
-    expect(a.guangshi.diff).toBe(4);
+    expect(a.guangshi.diff).toBe(-4);
     expect(a.guangshi.expected.expectedAh).toBe(0.75);
     expect(a.guangshi.vs.depth.kind).toBe("让浅");
     expect(a.bookMuUnchanged).toBe(true);
@@ -319,8 +323,8 @@ describe("第一篇：两把尺子与对手质量", () => {
     const mallorca = reviseAuthority({ prevNum: 8.5, proposedNum: 8, lastRoundBiased: true });
     expect(mallorca.num).toBe(8);
     expect(mallorca.role).toBe("修正偏估");
-    expect(guangshiDiff(8, 7)).toBe(1);
-    expect(guangshiDiff(8.5, 7)).toBe(1.5);
+    expect(guangshiDiff(8, 7)).toBe(-1);
+    expect(guangshiDiff(8.5, 7)).toBe(-1.5);
   });
 
   it("西甲马洛卡对瓦伦西亚：33轮差1.5，34轮证据修回1档", () => {
@@ -338,10 +342,10 @@ describe("第一篇：两把尺子与对手质量", () => {
       },
       jc: { imported: true, jc_points: 3, snapshot_at: "2026-05-10T10:00:00.000Z", had: { home: 2.4, draw: 3.1, away: 2.9 } },
     }, new Date("2026-05-10T12:00:00.000Z"));
-    expect(a.guangshi.diff).toBe(1);
-    expect(a.guangshi.diffText).toBe("客高1档");
+    expect(a.guangshi.diff).toBe(-1);
+    expect(a.guangshi.diffText).toBe("客强1档");
     expect(a.guangshi.rulers.revisions[0].role).toBe("修正偏估");
-    expect(a.guangshi.rulers.authority.diff).toBe(1);
+    expect(a.guangshi.rulers.authority.diff).toBe(-1);
     expect(a.bookMuUnchanged).toBe(true);
   });
 
@@ -390,6 +394,75 @@ describe("第一篇：两把尺子与对手质量", () => {
     expect(a.guangshi.rulers.rank.home.kind).toBe("排名恐慌");
     expect(seasonPhase(8, 38).phase).toBe("赛季初");
     expect(seasonPhase(20, 38).phase).toBe("维护期");
+  });
+});
+
+describe("第二篇：GD=客减主，分布与赔率", () => {
+  it("日职刻度中上5中游6中下7，主场龙减半档", () => {
+    expect(parseTierName("中游", "J1")).toBe(6);
+    expect(parseTierName("中上", "J1")).toBe(5);
+    expect(nameOfLeague(7, "J1")).toBe("中下");
+    expect(applyVenueDragon(6, true)).toBe(5.5);
+    expect(applyVenueDragon(6, false)).toBe(6);
+  });
+
+  it("绝对值定分布：0中庸、1–2缓冲、≥3顺分布", () => {
+    expect(distributionFromGd(0).kind).toBe("中庸");
+    expect(distributionFromGd(1).kind).toBe("缓冲");
+    expect(distributionFromGd(-1.5).kind).toBe("缓冲");
+    expect(distributionFromGd(2).kind).toBe("缓冲");
+    expect(distributionFromGd(-3).kind).toBe("顺分布");
+  });
+
+  it("法国5.0对英格兰3.5：GD=-1.5客强，虐菜后按缓冲，主胜压低诱买", () => {
+    expect(guangshiDiff(5, 3.5)).toBe(-1.5);
+    expect(distributionFromGd(-1.5).kind).toBe("缓冲");
+    const check = verifyOddsDirection({
+      gd: -1.5,
+      distribution: distributionFromGd(-1.5),
+      homeOdds: 1.85,
+      awayOdds: 2.45,
+      cheapHome: true,
+    });
+    expect(check.kind).toBe("诱买");
+    const a = analyzeMatch({
+      id: "fra-eng",
+      jcId: "演示法英",
+      leagueAbbName: "国际赛",
+      businessDate: "2026-06-10",
+      kickoffAt: "2026-06-10T19:00:00.000Z",
+      home: "法国",
+      away: "英格兰",
+      guangshiPreset: { home: { num: 5 }, away: { num: 3.5 } },
+      fundamentals: {
+        home: {
+          gf: 12,
+          ga: 4,
+          played: 6,
+          recent: [
+            { gf: 4, ga: 0, oppNum: 9 },
+            { gf: 3, ga: 0, oppNum: 8 },
+            { gf: 2, ga: 0, oppNum: 9 },
+            { gf: 3, ga: 1, oppNum: 8 },
+            { gf: 2, ga: 0, oppNum: 9 },
+          ],
+        },
+        away: { gf: 8, ga: 5, played: 6, recent: [{ gf: 1, ga: 0, oppNum: 5 }] },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-06-10T10:00:00.000Z", had: { home: 1.85, draw: 3.4, away: 2.45 } },
+    }, new Date("2026-06-10T12:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(-1.5);
+    expect(a.guangshi.diffText).toBe("客强1.5档");
+    expect(a.guangshi.distribution.kind).toBe("缓冲");
+    expect(a.guangshi.oddsCheck.kind).toBe("诱买");
+    expect(a.guangshi.rulers.quality.home.cheapWins).toBeGreaterThan(0);
+    expect(a.guangshi.motto).toMatch(/符号定强弱/);
+    expect(a.bookMuUnchanged).toBe(true);
+  });
+
+  it("顺分布强队赔率过低判诱强", () => {
+    const d = distributionFromGd(3);
+    expect(verifyOddsDirection({ gd: 3, distribution: d, homeOdds: 1.28, awayOdds: 8 }).kind).toBe("诱强");
   });
 });
 

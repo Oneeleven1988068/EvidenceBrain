@@ -71,6 +71,9 @@ export function exportDay(slate) {
             locked: a.guangshi.locked,
             inferred: a.guangshi.inferred,
             rulers: a.guangshi.rulers,
+            distribution: a.guangshi.distribution,
+            oddsCheck: a.guangshi.oddsCheck,
+            motto: a.guangshi.motto,
             note: a.guangshi.note,
           }
         : null,

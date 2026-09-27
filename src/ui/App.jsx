@@ -269,7 +269,7 @@ function LeagueBlock({ league, rows, now, follows, onStar, onOpen }) {
             {pinLine(m)}<br />
             封盘 {fmtMdHm(m.close?.close_at)} · 让球{ticketText(m) === "不出票" ? "让负" : ticketText(m)} / {ticketText(m)}
             {m.guangshi?.diffText && (
-              <div className="gs-line">广实 {m.guangshi.rulers?.authority?.label || "当轮权威"} · {m.guangshi.home?.name || "?"} / {m.guangshi.away?.name || "?"} · {m.guangshi.diffText}</div>
+              <div className="gs-line">GD {m.guangshi.diff} · {m.guangshi.diffText} · {m.guangshi.distribution?.kind || ""}</div>
             )}
           </div>
         </article>
@@ -364,16 +364,21 @@ function Detail({ m, onClose }) {
       <div className="kv"><span>竞彩</span><b>{jcHandicap(m)}</b></div>
       <div className="kv"><span>平博</span><b>{pinLine(m)}</b></div>
       <div className="kv"><span>结论</span><b>{m.verdict?.title} · {leanText(m)}</b></div>
-      <p className="warn">广实第一篇已接入：档不是排名，差只读当轮权威表。第二篇公式还没到，数学广实只校准、不越权。</p>
+      <p className="warn">广实差只反映谁强、强多少，不直接当赛果。数学广实只校准。赔率含抽水，无稳赢。</p>
       {g && (
         <>
           <div className="gs-line">
-            {g.rulers?.authority?.label || "当轮权威"} {g.home?.name || "?"} / {g.away?.name || "?"} · {g.diffText || "差未定"} · {g.vs?.kind || "—"}
+            GD {g.diff ?? "?"} · {g.diffText || "差未定"} · {g.distribution?.kind || "分布未定"} · {g.oddsCheck?.kind || g.vs?.kind || "—"}
+          </div>
+          <div className="muted">
+            {g.rulers?.authority?.label || "当轮权威"} {g.home?.name || "?"} / {g.away?.name || "?"}
+            {g.rulers?.authority?.venueDragon?.home || g.rulers?.authority?.venueDragon?.away ? " · 含主客场龙" : ""}
           </div>
           <div className="muted">
             数学广实 {g.rulers?.math?.homeSide?.name || "未接入"} / {g.rulers?.math?.awaySide?.name || "未接入"}
             {g.rulers?.math?.diff != null ? ` · 差 ${g.rulers.math.diff}` : ""} · 只校准
           </div>
+          <div className="muted">{g.motto}</div>
           {g.rulers?.drift?.halfTier && <p className="warn">半档已偏：数学广实提醒权威可能走远，但不能越过权威替它做决定。</p>}
           {g.rulers?.revisions?.some((r) => r.role === "提醒") && <p className="muted">一场球可以提醒，不能单独判刑。</p>}
           {(g.rulers?.rank?.home?.kind === "排名恐慌" || g.rulers?.rank?.away?.kind === "排名恐慌") && (
