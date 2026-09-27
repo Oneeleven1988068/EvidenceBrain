@@ -261,6 +261,13 @@
       "home": { "lineupType": "predicted", "source": "enetpulse" },
       "away": { "lineupType": "predicted", "source": "enetpulse" }
     },
+    "standing": {
+      "home": { "played": 8, "rank": 4 },
+      "away": { "played": 8, "rank": 3 }
+    },
+    "schedule": {
+      "home": { "prevDays": 7, "nextDays": 8, "nextMoreImportant": false }
+    },
     "fundamentals": {
       "home": { "gf": 12, "ga": 9, "played": 8, "rank": 4, "teams": 20, "recent": [{ "gf": 2, "ga": 1, "oppNum": 6 }, { "gf": 1, "ga": 1, "oppNum": 5 }] },
       "away": { "gf": 11, "ga": 8, "played": 8, "rank": 3, "teams": 20, "recent": [{ "gf": 2, "ga": 0, "oppNum": 8 }, { "gf": 1, "ga": 2, "oppNum": 3 }] }
@@ -303,6 +310,13 @@
     "lineup": {
       "home": { "lineupType": "predicted", "source": "enetpulse" },
       "away": { "lineupType": "predicted", "source": "enetpulse" }
+    },
+    "standing": {
+      "home": { "played": 7, "rank": 12 },
+      "away": { "played": 7, "rank": 2 }
+    },
+    "schedule": {
+      "home": { "prevDays": 6, "nextDays": 8, "nextMoreImportant": false }
     },
     "fundamentals": {
       "home": { "gf": 8, "ga": 10, "played": 7, "rank": 12, "teams": 20, "recent": [{ "gf": 1, "ga": 0, "oppNum": 7 }] },

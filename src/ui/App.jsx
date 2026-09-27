@@ -367,16 +367,33 @@ function Detail({ m, onClose, onPick }) {
   );
 }
 
+function sideLabel(side) {
+  if (!side) return "?";
+  if (side.num != null && side.name) return `${side.name}(${side.num})`;
+  return side.name || "?";
+}
+
+function openLabel(g) {
+  if (g.openRead?.kind && g.openRead.kind !== "未对照") return g.openRead.kind;
+  if (g.vs?.depth?.kind && g.vs.depth.kind !== "未对照") return g.vs.depth.kind;
+  return "未对照";
+}
+
 function GuangshiLine({ g }) {
-  if (!g) return <div className="meta">广实 未接入</div>;
-  if (g.status === "未接入") return <div className="meta">广实 未接入（缺进失球和排名，不打分）</div>;
-  const vs = g.vs?.kind || "—";
-  const open = g.openRead?.kind || "—";
+  if (!g) return <div className="gs-line">广实 未接入</div>;
+  if (g.status === "未接入") {
+    return <div className="gs-line">广实 未接入（缺进失球和排名，不打分）</div>;
+  }
   return (
     <div className="gs-line">
-      广实 {g.home?.name || "?"} / {g.away?.name || "?"} · {g.diffText || "差未定"} · {open} · {vs}
+      广实 {sideLabel(g.home)} / {sideLabel(g.away)} · {g.diffText || "差未定"} · {openLabel(g)} · {g.vs?.kind || "—"}
     </div>
   );
+}
+
+const LEAN_NAME = { home: "主胜", draw: "平", away: "客胜" };
+function leanName(x) {
+  return LEAN_NAME[x] || x || "—";
 }
 
 function GuangshiBox({ g }) {
@@ -393,8 +410,8 @@ function GuangshiBox({ g }) {
       <div className="kv"><span>应开</span><span>{g.expected?.label || "未定"}</span></div>
       <div className="kv"><span>开盘</span><span>{g.openRead?.kind || "未对照"} {g.openRead?.note || ""}</span></div>
       <div className="kv"><span>判定</span><span>{g.vs?.kind} · {g.vs?.note}</span></div>
-      <div className="kv"><span>广实偏向</span><span>胜平负 {g.vs?.gsLean || "—"} · 热门 {g.hot || "—"}</span></div>
-      <div className="kv"><span>盘口偏向</span><span>{g.vs?.priceLean || "—"} · 用的是 {g.vs?.priceSource}</span></div>
+      <div className="kv"><span>广实偏向</span><span>胜平负 {leanName(g.vs?.gsLean)} · 热门 {leanName(g.hot)}</span></div>
+      <div className="kv"><span>盘口偏向</span><span>{leanName(g.vs?.priceLean)} · 用的是 {g.vs?.priceSource}</span></div>
       <div className="kv"><span>深浅</span><span>{g.vs?.depth?.kind || "—"} 应开 {g.vs?.depth?.expectedAh ?? "—"} 平博五五开 {g.vs?.depth?.actualAh ?? "—"}</span></div>
       <div className="meta">{g.vs?.jcHhadNote}</div>
       {g.home?.score && (
@@ -413,6 +430,12 @@ function GuangshiBox({ g }) {
           广实胜平负 {(g.gs1x2.home * 100).toFixed(1)} / {(g.gs1x2.draw * 100).toFixed(1)} / {(g.gs1x2.away * 100).toFixed(1)}
           {g.gsAh ? ` · 预期让球 ${g.gsAh.line}` : ""}
         </div>
+      )}
+      {g.locked?.length > 0 && (
+        <div className="meta">钉中游：{g.locked.map((x) => `${x.team}${x.source ? `（${x.source}）` : ""}`).join("、")}</div>
+      )}
+      {g.inferred?.length > 0 && (
+        <div className="meta">反推：{g.inferred.filter((x) => x.team || x.side).map((x) => `${x.team || x.side} ${x.name || x.source || ""}`).join("、")}</div>
       )}
       <div className="meta">现在拿到：{got.length ? got.join("、") : "无"}</div>
       <div className="meta">还缺：{miss.length ? miss.join("、") : "无"}</div>

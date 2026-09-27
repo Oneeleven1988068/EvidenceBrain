@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyPedigree,
+  buildLadder,
   classifyVsPrice,
   formPoints,
   inferFromOpening,
@@ -81,6 +82,31 @@ describe("档怎么做出来", () => {
     const liv = inferFromOpening({ selfIsHome: true, openingAh: -1, knownOppNum: 7 });
     expect(liv.homeStrongerBy).toBe(1.5);
     expect(liv.num).toBe(5.5);
+  });
+  it("两轮开盘反推：先钉中游，再推普强/准强/中下，再推中上", () => {
+    const lad = buildLadder({
+      titleOdds: [
+        { team: "伯恩茅斯", odds: 501 },
+        { team: "埃弗顿", odds: 501 },
+        { team: "水晶宫", odds: 501 },
+      ],
+      openings: [
+        { home: "利物浦", away: "伯恩茅斯", openingAh: -2.25 },
+        { home: "切尔西", away: "埃弗顿", openingAh: -1.75 },
+        { home: "利兹联", away: "水晶宫", openingAh: 0.25 },
+        { home: "布莱顿", away: "水晶宫", openingAh: -0.75 },
+        { home: "森林", away: "伯恩茅斯", openingAh: -0.25 },
+        { home: "切尔西", away: "狼队", openingAh: -2.25 },
+      ],
+    });
+    expect(lad.tiers["利物浦"].name).toMatch(/普强/);
+    expect(lad.tiers["切尔西"].name).toMatch(/准强/);
+    expect(lad.tiers["利兹联"].name).toMatch(/中下/);
+    expect(lad.tiers["布莱顿"].name).toMatch(/中上/);
+    expect(lad.tiers["森林"].name).toBe("中游");
+    expect(lad.tiers["狼队"].name).toMatch(/中下/);
+    expect(lad.inferred.find((x) => x.team === "利物浦").round).toBe(1);
+    expect(lad.inferred.find((x) => x.team === "狼队").round).toBeGreaterThanOrEqual(2);
   });
   it("盘能：同一第三者主胜更低高半档", () => {
     const pn = panNeng(
@@ -166,6 +192,49 @@ describe("对照价格不改 μ", () => {
 });
 
 describe("接入每场且不改盘口 μ", () => {
+  it("切尔西对曼城 1.95：同档读成三区间=低开，不改 μ", () => {
+    const m = {
+      id: "che-mci",
+      jcId: "演示切城",
+      leagueAbbName: "英超",
+      businessDate: "2026-09-28",
+      kickoffAt: "2026-09-28T19:30:00.000Z",
+      home: "切尔西",
+      away: "曼城",
+      guangshiPreset: {
+        home: { name: "准强", prestige: "准强", pedigree: 0.6 },
+        away: { name: "准强", prestige: "准强", pedigree: 0.8 },
+      },
+      opening: { william: 1.95, imageBoost: 0.25 },
+      pinnacle: {
+        ah: [
+          { book_id: 47, line: -0.25, home: 0.95, away: 0.9, odds_format: "hk" },
+          { book_id: 47, line: 0, home: 0.72, away: 1.15, odds_format: "hk" },
+        ],
+        ou: [{ book_id: 47, line: 2.5, over: 0.92, under: 0.92, odds_format: "hk" }],
+        euro: { book_id: 177, home: 2.7, draw: 3.4, away: 2.55, odds_format: "decimal", ownClock: true },
+      },
+      jc: { imported: true, jc_points: 3, snapshot_at: "2026-09-28T10:00:00.000Z", had: { home: 2.65, draw: 3.3, away: 2.5 } },
+      injuries: { injury_tried: true, name_map_ok: true, emptyOfficial: true, injury_source_url: "https://x", fetched_at: "2026-09-28T10:00:00.000Z" },
+      lineup: { home: { lineupType: "predicted", source: "enetpulse" }, away: { lineupType: "predicted", source: "enetpulse" } },
+      standing: { home: { played: 8, rank: 4 }, away: { played: 8, rank: 3 } },
+      schedule: { home: { prevDays: 7, nextDays: 8, nextMoreImportant: false } },
+      fundamentals: {
+        home: { gf: 12, ga: 9, played: 8, rank: 4, teams: 20, recent: [{ gf: 2, ga: 1, oppNum: 6 }] },
+        away: { gf: 11, ga: 8, played: 8, rank: 3, teams: 20, recent: [{ gf: 2, ga: 0, oppNum: 8 }] },
+      },
+    };
+    const a = analyzeMatch(m, new Date("2026-09-28T11:00:00.000Z"));
+    expect(a.guangshi.diff).toBe(0);
+    expect(a.guangshi.diffText).toBe("同档");
+    expect(a.guangshi.expected.n).toBe(2);
+    expect(a.guangshi.openRead.kind).toBe("低开");
+    expect(a.guangshi.openRead.note).toMatch(/形象加/);
+    expect(a.bookMuUnchanged).toBe(true);
+    expect(a.fit.lambdaHome).toBeTruthy();
+    const mu = a.fit.lambdaHome;
+    expect(a.guangshi.gsMu.lambdaHome).not.toBe(mu);
+  });
   it("水晶宫主场对利物浦：客场至少该让 0.75，实际 0.5=让浅", () => {
     const m = {
       id: "pal-liv",

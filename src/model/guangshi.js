@@ -40,38 +40,41 @@ export function williamInterval(decimal) {
 
 /**
  * 广实差 → 应开区间和应开亚盘（主队视角，负线=主让）。
- * 客队更强时整表下移。超过 1.5 档，每多半档再加 0.25 球。
+ * 客队更强时整表下移。区间表只铺到 ±1.5 档，再大的数字差按 ±2 封顶，
+ * 所以宫利这种客高 4 档也只读成「至少让 0.75」。
  */
 export function intervalFromDiff(diff) {
   if (diff == null) return null;
   const capped = Math.max(-2, Math.min(2, diff));
   const homeStrongerBy = -capped;
+  const actualBy = -diff;
+  const gapLabel = actualBy === 0 ? "同档" : actualBy > 0 ? `主高${actualBy}档` : `客高${-actualBy}档`;
   if (homeStrongerBy === 0) {
-    return { n: 2, name: "二区间", expectedAh: -0.25, label: "同档 · 平半" };
+    return { n: 2, name: "二区间", expectedAh: -0.25, label: `${gapLabel} · 平半` };
   }
   if (homeStrongerBy === 0.5) {
-    return { n: 3, name: "三区间", expectedAh: -0.5, label: "主高半档 · 半球" };
+    return { n: 3, name: "三区间", expectedAh: -0.5, label: `${gapLabel} · 半球` };
   }
   if (homeStrongerBy === 1) {
-    return { n: 4, name: "四区间", expectedAh: -0.75, label: "主高一档 · 半一" };
+    return { n: 4, name: "四区间", expectedAh: -0.75, label: `${gapLabel} · 半一` };
   }
   if (homeStrongerBy === 1.5) {
-    return { n: 5, name: "五区间", expectedAh: -1, label: "主高 1.5 档 · 一球" };
+    return { n: 5, name: "五区间", expectedAh: -1, label: `${gapLabel} · 一球` };
   }
   if (homeStrongerBy === -0.5) {
-    return { n: 1, name: "一区间", expectedAh: 0, label: "客高半档 · 平手" };
+    return { n: 1, name: "一区间", expectedAh: 0, label: `${gapLabel} · 平手` };
   }
   if (homeStrongerBy === -1) {
-    return { n: 2, name: "二区间", expectedAh: 0.25, label: "客高一档 · 客让平半" };
+    return { n: 2, name: "二区间", expectedAh: 0.25, label: `${gapLabel} · 客让平半` };
   }
   if (homeStrongerBy > 1.5) {
     const extra = homeStrongerBy - 1.5;
     const ah = -(1 + extra * 0.5);
-    return { n: 5 + extra, name: `五区间+`, expectedAh: ah, label: `主高${homeStrongerBy}档` };
+    return { n: 5 + extra, name: "五区间+", expectedAh: ah, label: `${gapLabel} · 至少让 ${Math.abs(ah)}` };
   }
   const extra = -homeStrongerBy - 1;
   const ah = 0.25 + extra * 0.5;
-  return { n: 1 - extra, name: "一区间-", expectedAh: ah, label: `客高${-homeStrongerBy}档` };
+  return { n: 1 - extra, name: "一区间-", expectedAh: ah, label: `${gapLabel} · 至少让 ${Math.abs(ah)}` };
 }
 
 export function lockMidtable({ fiveYearRanks, titleOdds, titleOddsMid = 501 } = {}) {
@@ -143,6 +146,54 @@ export function inferFromOpening({ selfIsHome, openingAh, knownOppNum, span }) {
     source: `对档${knownOppNum}开 ${openingAh}，反推`,
     homeStrongerBy,
   };
+}
+
+/**
+ * 多轮反推：先钉死中游，再拿对中游的开盘推第一轮，
+ * 再用已定档的队推剩下的。没有近六场积分公式。
+ */
+export function buildLadder({ titleOdds, fiveYearRanks, openings = [], span } = {}) {
+  const locked = lockMidtable({ titleOdds, fiveYearRanks });
+  const tiers = new Map();
+  for (const row of locked) {
+    tiers.set(row.team, { num: row.num, name: row.name, source: row.source, locked: true, round: 0 });
+  }
+  const inferred = [];
+  let progress = true;
+  let rounds = 0;
+  while (progress && rounds < 8) {
+    progress = false;
+    rounds += 1;
+    const known = new Map(tiers);
+    const newly = [];
+    for (const g of openings) {
+      const homeKnown = known.get(g.home);
+      const awayKnown = known.get(g.away);
+      if (homeKnown && !awayKnown && !newly.some((x) => x.team === g.away)) {
+        const inf = inferFromOpening({
+          selfIsHome: false,
+          openingAh: g.openingAh,
+          knownOppNum: homeKnown.num,
+          span,
+        });
+        if (inf) newly.push({ team: g.away, ...inf });
+      } else if (awayKnown && !homeKnown && !newly.some((x) => x.team === g.home)) {
+        const inf = inferFromOpening({
+          selfIsHome: true,
+          openingAh: g.openingAh,
+          knownOppNum: awayKnown.num,
+          span,
+        });
+        if (inf) newly.push({ team: g.home, ...inf });
+      }
+    }
+    for (const row of newly) {
+      tiers.set(row.team, { ...row, locked: false, round: rounds });
+      inferred.push({ ...row, round: rounds });
+      progress = true;
+    }
+  }
+  return { locked, inferred, tiers: Object.fromEntries(tiers), rounds };
 }
 
 /**
@@ -430,9 +481,11 @@ export function openVsInterval(expected, williamDec, imageBoost = 0) {
   if (!w) return { kind: "未对照", expected };
   const adj = expected.n;
   if (w.n === adj) return { kind: "开在档上", william: w, expected };
-  if (w.n > adj) return { kind: "低开", william: w, expected, note: `读成${w.name}，档上应是${expected.name}` };
-  if (imageBoost && w.n === adj + 0 && Math.abs(w.n - adj) <= 1) {
-    return { kind: "低开", william: w, expected, note: `最多形象加 ${imageBoost} 档仍偏低开` };
+  if (w.n > adj) {
+    const note = imageBoost
+      ? `读成${w.name}，档上应是${expected.name}，最多形象加 ${imageBoost} 档仍偏低开`
+      : `读成${w.name}，档上应是${expected.name}`;
+    return { kind: "低开", william: w, expected, note };
   }
   if (w.n < adj) return { kind: "高开", william: w, expected };
   return { kind: "开在档上", william: w, expected };
@@ -461,10 +514,27 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
   const inv = inventoryOf(match);
   const preset = match.guangshiPreset || {};
 
-  const locked = lockMidtable(match.tierBuild || {});
+  const ladder = buildLadder({
+    titleOdds: match.tierBuild?.titleOdds,
+    fiveYearRanks: match.tierBuild?.fiveYearRanks,
+    openings: match.tierBuild?.openings || [],
+    span,
+  });
+  const locked = ladder.locked;
   let homeNum = parseTierName(preset.home?.num ?? preset.home?.name);
   let awayNum = parseTierName(preset.away?.num ?? preset.away?.name);
-  const inferred = [];
+  const inferred = [...ladder.inferred];
+
+  const homeFromLadder = match.home && ladder.tiers[match.home];
+  const awayFromLadder = match.away && ladder.tiers[match.away];
+  if (homeNum == null && homeFromLadder) {
+    homeNum = homeFromLadder.num;
+    inferred.push({ side: "home", ...homeFromLadder });
+  }
+  if (awayNum == null && awayFromLadder) {
+    awayNum = awayFromLadder.num;
+    inferred.push({ side: "away", ...awayFromLadder });
+  }
 
   if (homeNum == null && match.tierBuild?.homeOpening && match.tierBuild?.oppNum != null) {
     const inf = inferFromOpening({
@@ -573,6 +643,7 @@ export function analyzeGuangshi(match, books, { rho = -0.08 } = {}) {
     status,
     span,
     locked,
+    ladder,
     inferred,
     home: { num: homeNum, name: nameOf(homeNum), score: homeScore },
     away: { num: awayNum, name: nameOf(awayNum), score: awayScore },

@@ -74,7 +74,7 @@
 | 项 | 文件 | 函数 |
 |---|---|---|
 | 九档编号、主减客 | `src/league/tiers.js` | `guangshiDiff` `nameOf` |
-| 钉中游、开盘反推、盘能 | `src/model/guangshi.js` | `lockMidtable` `inferFromOpening` `panNeng` |
+| 钉中游、开盘反推、盘能 | `src/model/guangshi.js` | `lockMidtable` `inferFromOpening` `buildLadder` `panNeng` |
 | 底蕴阻尼 | `src/model/guangshi.js` | `applyPedigree` |
 | 区间/威廉锚点 | `src/model/guangshi.js` | `intervalFromDiff` `williamInterval` |
 | 55/25/20 打分，不看赔率 | `src/model/guangshi.js` | `scoreSide` |

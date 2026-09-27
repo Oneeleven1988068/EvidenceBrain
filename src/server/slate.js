@@ -68,6 +68,8 @@ export function exportDay(slate) {
             openRead: a.guangshi.openRead,
             vs: a.guangshi.vs,
             gs1x2: a.guangshi.gs1x2,
+            locked: a.guangshi.locked,
+            inferred: a.guangshi.inferred,
             note: a.guangshi.note,
           }
         : null,
