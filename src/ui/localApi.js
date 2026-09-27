@@ -3,7 +3,9 @@
  */
 import seed from "../../data/store/matches.json";
 import { buildSlate, exportDay, boardStats } from "../server/slate.js";
-import { classifyFilename, normalizeImport, normalizeResults, importReceipt } from "../data/jcImport.js";
+import { classifyFilename, mergeImported, normalizeImport, normalizeResults, importReceipt } from "../data/jcImport.js";
+
+export { mergeImported };
 
 const MATCH_KEY = "evidencebrain-matches-v1";
 const LAST_KEY = "evidencebrain-jc-last-v1";
@@ -27,31 +29,6 @@ export function loadMatches() {
 
 export function saveMatches(rows) {
   localStorage.setItem(MATCH_KEY, JSON.stringify(rows));
-}
-
-export function mergeImported(existing, current) {
-  const byId = new Map((existing || []).map((m) => [m.jcId || m.id, m]));
-  for (const row of current.matches) {
-    const existingRow = byId.get(row.jcId) || { id: row.jcId, jcId: row.jcId };
-    byId.set(row.jcId, {
-      ...existingRow,
-      ...row,
-      jc: {
-        imported: true,
-        jc_points: row.jc_points,
-        snapshot_at: row.snapshot_at,
-        had: row.had,
-        hhad: row.hhad,
-        hhad_line: row.hhad_line,
-      },
-      businessDate: row.businessDate,
-      leagueAbbName: row.leagueAbbName || existingRow.leagueAbbName,
-      kickoffAt: row.kickoffAt || existingRow.kickoffAt,
-      home: row.home || existingRow.home,
-      away: row.away || existingRow.away,
-    });
-  }
-  return [...byId.values()];
 }
 
 export function getSlate(now = new Date()) {

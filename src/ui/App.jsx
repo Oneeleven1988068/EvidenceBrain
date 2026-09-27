@@ -101,6 +101,7 @@ export default function App() {
   const [openDays, setOpenDays] = useState(() => new Set());
   const [poolFiles, setPoolFiles] = useState(0);
   const [resultFiles, setResultFiles] = useState(0);
+  const [receipts, setReceipts] = useState([]);
   const [clock, setClock] = useState(fmtClock());
   const poolRef = useRef(null);
   const resultRef = useRef(null);
@@ -209,14 +210,17 @@ export default function App() {
           resultFiles={resultFiles}
           poolRef={poolRef}
           resultRef={resultRef}
+          receipts={receipts}
           onPools={async (files) => {
-            await importFiles(files, "pools");
+            const out = await importFiles(files, "pools");
             setPoolFiles(files.length);
+            setReceipts(out);
             reload();
           }}
           onResults={async (files) => {
-            await importFiles(files, "results");
+            const out = await importFiles(files, "results");
             setResultFiles(files.length);
+            setReceipts(out);
             reload();
           }}
         />
@@ -255,9 +259,9 @@ function LeagueBlock({ league, rows, now, follows, onStar, onOpen }) {
             </span>
           </div>
           <div className="versus">
-            <div><b>{m.home}</b><small>{m.standing?.home?.rank ?? ""}</small></div>
+            <div><b>{m.home}</b><small>{m.standing?.home?.rank ?? m.homeRank ?? ""}</small></div>
             <div className="mid">对阵</div>
-            <div><b>{m.away}</b><small>{m.standing?.away?.rank ?? ""}</small></div>
+            <div><b>{m.away}</b><small>{m.standing?.away?.rank ?? m.awayRank ?? ""}</small></div>
           </div>
           <div className="mmeta">
             <span className="mpill">{leanText(m)}</span>
@@ -271,7 +275,7 @@ function LeagueBlock({ league, rows, now, follows, onStar, onOpen }) {
   );
 }
 
-function Import({ matches, pinReady, poolFiles, resultFiles, poolRef, resultRef, onPools, onResults }) {
+function Import({ matches, pinReady, poolFiles, resultFiles, poolRef, resultRef, onPools, onResults, receipts }) {
   return (
     <section>
       <div className="h1">导入</div>
@@ -296,6 +300,13 @@ function Import({ matches, pinReady, poolFiles, resultFiles, poolRef, resultRef,
       </button>
       <input ref={resultRef} type="file" accept=".json,application/json" multiple hidden onChange={(e) => onResults([...e.target.files])} />
       <button className="import-btn">导入 {resultFiles} 个文件</button>
+      {receipts?.length > 0 && receipts.map((r, i) => (
+        <p key={`${r.filename || i}-${i}`} className={r.ok ? "muted" : "warn"}>
+          {r.ok
+            ? `${r.filename || "文件"} · ${r.kind === "results" ? `赛果 ${r.count}` : `赛程 ${r.count}`} 场已写入`
+            : `${r.filename || "文件"} · 导入失败：${r.error || "未知错误"}`}
+        </p>
+      ))}
     </section>
   );
 }
@@ -325,7 +336,7 @@ function Results({ results, openDays, setOpenDays }) {
             {open && rows.map((r) => (
               <div key={r.jcId} className="resrow">
                 <div className="name"><span className="tag">观察</span>{r.home} vs {r.away}</div>
-                <div className="muted">{r.jcId}{r.homeScore != null ? ` · ${r.homeScore}-${r.awayScore}` : ""} · 空过 · 不对账</div>
+                <div className="muted">{r.jcId} · {r.scoreText || (r.homeScore != null ? `${r.homeScore}:${r.awayScore}` : "未完")}{r.half ? ` · 半 ${r.half}` : ""} · 空过 · 不对账</div>
               </div>
             ))}
           </div>
@@ -341,9 +352,9 @@ function Detail({ m, onClose }) {
     <div className="sheet">
       <button className="back" onClick={onClose}>返回</button>
       <div className="versus">
-        <div><b>{m.home}</b></div>
+        <div><b>{m.home}</b><small>{m.standing?.home?.rank ?? m.homeRank ?? ""}</small></div>
         <div className="mid">{m.jcId}</div>
-        <div><b>{m.away}</b></div>
+        <div><b>{m.away}</b><small>{m.standing?.away?.rank ?? m.awayRank ?? ""}</small></div>
       </div>
       <div className="kv"><span>联赛</span><b>{m.league?.name}</b></div>
       <div className="kv"><span>封盘</span><b>{fmtMdHm(m.close?.close_at)}</b></div>
