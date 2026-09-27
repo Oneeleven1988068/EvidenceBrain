@@ -1,0 +1,24 @@
+{
+  "businessDate": "2026-09-26",
+  "snapshot_at": "2026-09-26T09:45:00.000Z",
+  "matches": [
+    {
+      "jcId": "周六007",
+      "leagueAbbName": "亚运男足",
+      "home": "亚运主",
+      "away": "亚运客",
+      "kickoffAt": "2026-09-26T10:30:00.000Z",
+      "had": { "home": 1.88, "draw": 3.35, "away": 3.55, "single": false, "poolStatus": "销售中" }
+    },
+    {
+      "jcId": "周六008",
+      "leagueAbbName": "欧国联",
+      "home": "斯洛文尼亚",
+      "away": "苏格兰",
+      "kickoffAt": "2026-09-26T13:00:00.000Z",
+      "hhad_line": -1,
+      "had": { "home": 2.38, "draw": 3.05, "away": 2.95, "single": true, "poolStatus": "销售中" },
+      "hhad": { "home": 3.4, "draw": 3.3, "away": 1.85, "single": false, "poolStatus": "仅串关" }
+    }
+  ]
+}

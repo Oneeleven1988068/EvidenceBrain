@@ -1,0 +1,326 @@
+[
+  {
+    "id": "sat008",
+    "jcId": "周六008",
+    "leagueAbbName": "欧国联",
+    "businessDate": "2026-09-26",
+    "kickoffAt": "2026-09-26T13:00:00.000Z",
+    "titan_id": "2668844",
+    "home": "斯洛文尼亚",
+    "away": "苏格兰",
+    "week1": true,
+    "nameMap": {
+      "ok": true,
+      "jcHome": "斯洛文尼亚",
+      "jcAway": "苏格兰"
+    },
+    "hhad_line": -1,
+    "pinnacle": {
+      "ah": [
+        {
+          "book_id": 47,
+          "line": 0,
+          "home": 0.79,
+          "away": 1.14,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": -0.25,
+          "home": 1.16,
+          "away": 0.75,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": -0.5,
+          "home": 1.54,
+          "away": 0.56,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": 0.25,
+          "home": 0.55,
+          "away": 1.57,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        }
+      ],
+      "ou": [
+        {
+          "book_id": 47,
+          "line": 2.25,
+          "over": 1.03,
+          "under": 0.86,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": 2,
+          "over": 0.7,
+          "under": 1.22,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": 2.5,
+          "over": 1.32,
+          "under": 0.65,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        },
+        {
+          "book_id": 47,
+          "line": 1.75,
+          "over": 0.52,
+          "under": 1.62,
+          "odds_format": "hk",
+          "changed_at": "2026-09-26T08:14:00.000Z",
+          "fetched_at": "2026-09-26T08:20:00.000Z"
+        }
+      ],
+      "euro": {
+        "book_id": 177,
+        "home": 2.55,
+        "draw": 3.21,
+        "away": 3.04,
+        "odds_format": "decimal",
+        "changed_at": "2026-09-26T08:14:00.000Z",
+        "fetched_at": "2026-09-26T08:20:00.000Z",
+        "ownClock": true
+      }
+    },
+    "jc": {
+      "imported": true,
+      "jc_points": 3,
+      "snapshot_at": "2026-09-26T09:45:00.000Z",
+      "had": {
+        "home": 2.38,
+        "draw": 3.05,
+        "away": 2.95,
+        "singleHome": "单关",
+        "singleDraw": "单关",
+        "singleAway": "单关",
+        "poolStatus": "销售中"
+      },
+      "hhad": {
+        "home": 3.4,
+        "draw": 3.3,
+        "away": 1.85,
+        "single": false,
+        "poolStatus": "仅串关"
+      },
+      "hhad_line": -1
+    },
+    "injuries": {
+      "injury_tried": true,
+      "injury_source": "fotmob",
+      "injury_source_url": "https://www.fotmob.com",
+      "fetched_at": "2026-09-26T08:20:00.000Z",
+      "name_map_ok": true,
+      "hasList": false,
+      "emptyOfficial": true,
+      "players": []
+    },
+    "lineup": {
+      "home": {
+        "lineupType": "predicted",
+        "source": "enetpulse"
+      },
+      "away": {
+        "lineupType": "predicted",
+        "source": "enetpulse"
+      }
+    },
+    "standing": null,
+    "had": {
+      "home": 2.38,
+      "draw": 3.05,
+      "away": 2.95,
+      "singleHome": "单关",
+      "singleDraw": "单关",
+      "singleAway": "单关",
+      "poolStatus": "销售中"
+    },
+    "hhad": {
+      "home": 3.4,
+      "draw": 3.3,
+      "away": 1.85,
+      "single": false,
+      "poolStatus": "仅串关"
+    },
+    "snapshot_at": "2026-09-26T09:45:00.000Z",
+    "imported": true,
+    "jc_points": 3
+  },
+  {
+    "id": "sat007",
+    "jcId": "周六007",
+    "leagueAbbName": "亚男足",
+    "businessDate": "2026-09-26",
+    "kickoffAt": "2026-09-26T10:30:00.000Z",
+    "home": "亚运主",
+    "away": "亚客",
+    "week1": true,
+    "nameMap": {
+      "ok": false
+    },
+    "jc": {
+      "imported": true,
+      "jc_points": 3,
+      "snapshot_at": "2026-09-26T09:45:00.000Z",
+      "had": {
+        "home": 1.88,
+        "draw": 3.35,
+        "away": 3.55,
+        "singleHome": "未知",
+        "singleDraw": "未知",
+        "singleAway": "未知"
+      },
+      "hhad": null
+    },
+    "pinnacle": {
+      "ah": [],
+      "ou": [],
+      "euro": null
+    },
+    "injuries": {
+      "injury_tried": false
+    },
+    "lineup": {
+      "home": {
+        "lineupType": "missing"
+      },
+      "away": {
+        "lineupType": "missing"
+      }
+    },
+    "had": {
+      "home": 1.88,
+      "draw": 3.35,
+      "away": 3.55,
+      "singleHome": "未知",
+      "singleDraw": "未知",
+      "singleAway": "未知"
+    },
+    "hhad": null,
+    "snapshot_at": "2026-09-26T09:45:00.000Z",
+    "imported": true,
+    "jc_points": 3
+  },
+  {
+    "id": "che-mci",
+    "jcId": "演示切城",
+    "leagueAbbName": "英超",
+    "businessDate": "2026-09-28",
+    "kickoffAt": "2026-09-28T19:30:00.000Z",
+    "home": "切尔西",
+    "away": "曼城",
+    "guangshiPreset": {
+      "home": { "name": "准强", "prestige": "准强", "pedigree": 0.6 },
+      "away": { "name": "准强", "prestige": "准强", "pedigree": 0.8 }
+    },
+    "opening": { "william": 1.95, "imageBoost": 0.25 },
+    "pinnacle": {
+      "ah": [
+        { "book_id": 47, "line": -0.25, "home": 0.95, "away": 0.9, "odds_format": "hk" },
+        { "book_id": 47, "line": 0, "home": 0.72, "away": 1.15, "odds_format": "hk" }
+      ],
+      "ou": [
+        { "book_id": 47, "line": 2.5, "over": 0.92, "under": 0.92, "odds_format": "hk" }
+      ],
+      "euro": { "book_id": 177, "home": 2.7, "draw": 3.4, "away": 2.55, "odds_format": "decimal", "ownClock": true }
+    },
+    "jc": {
+      "imported": true,
+      "jc_points": 3,
+      "snapshot_at": "2026-09-28T10:00:00.000Z",
+      "had": { "home": 2.65, "draw": 3.3, "away": 2.5 }
+    },
+    "injuries": {
+      "injury_tried": true,
+      "name_map_ok": true,
+      "emptyOfficial": true,
+      "injury_source_url": "https://www.fotmob.com",
+      "fetched_at": "2026-09-28T10:00:00.000Z"
+    },
+    "lineup": {
+      "home": { "lineupType": "predicted", "source": "enetpulse" },
+      "away": { "lineupType": "predicted", "source": "enetpulse" }
+    },
+    "standing": {
+      "home": { "played": 8, "rank": 4 },
+      "away": { "played": 8, "rank": 3 }
+    },
+    "schedule": {
+      "home": { "prevDays": 7, "nextDays": 8, "nextMoreImportant": false }
+    },
+    "fundamentals": {
+      "home": { "gf": 12, "ga": 9, "played": 8, "rank": 4, "teams": 20, "recent": [{ "gf": 2, "ga": 1, "oppNum": 6 }, { "gf": 1, "ga": 1, "oppNum": 5 }] },
+      "away": { "gf": 11, "ga": 8, "played": 8, "rank": 3, "teams": 20, "recent": [{ "gf": 2, "ga": 0, "oppNum": 8 }, { "gf": 1, "ga": 2, "oppNum": 3 }] }
+    },
+    "tierBuild": {
+      "titleOdds": [
+        { "team": "伯恩茅斯", "odds": 501 },
+        { "team": "埃弗顿", "odds": 501 },
+        { "team": "水晶宫", "odds": 501 }
+      ]
+    }
+  },
+  {
+    "id": "cry-liv",
+    "jcId": "演示宫利",
+    "leagueAbbName": "英超",
+    "businessDate": "2026-09-28",
+    "kickoffAt": "2026-09-28T20:00:00.000Z",
+    "home": "水晶宫",
+    "away": "利物浦",
+    "guangshiPreset": { "home": { "name": "中游" }, "away": { "name": "普强" } },
+    "pinnacle": {
+      "ah": [{ "book_id": 47, "line": 0.5, "home": 0.9, "away": 0.95, "odds_format": "hk" }],
+      "ou": [{ "book_id": 47, "line": 2.5, "over": 0.95, "under": 0.9, "odds_format": "hk" }],
+      "euro": { "book_id": 177, "home": 5.5, "draw": 4.2, "away": 1.55, "odds_format": "decimal", "ownClock": true }
+    },
+    "jc": {
+      "imported": true,
+      "jc_points": 3,
+      "snapshot_at": "2026-09-28T10:00:00.000Z",
+      "had": { "home": 5.2, "draw": 4.0, "away": 1.58 }
+    },
+    "injuries": {
+      "injury_tried": true,
+      "name_map_ok": true,
+      "emptyOfficial": true,
+      "injury_source_url": "https://www.fotmob.com",
+      "fetched_at": "2026-09-28T10:00:00.000Z"
+    },
+    "lineup": {
+      "home": { "lineupType": "predicted", "source": "enetpulse" },
+      "away": { "lineupType": "predicted", "source": "enetpulse" }
+    },
+    "standing": {
+      "home": { "played": 7, "rank": 12 },
+      "away": { "played": 7, "rank": 2 }
+    },
+    "schedule": {
+      "home": { "prevDays": 6, "nextDays": 8, "nextMoreImportant": false }
+    },
+    "fundamentals": {
+      "home": { "gf": 8, "ga": 10, "played": 7, "rank": 12, "teams": 20, "recent": [{ "gf": 1, "ga": 0, "oppNum": 7 }] },
+      "away": { "gf": 14, "ga": 6, "played": 7, "rank": 2, "teams": 20, "recent": [{ "gf": 2, "ga": 1, "oppNum": 5 }] }
+    }
+  }
+]

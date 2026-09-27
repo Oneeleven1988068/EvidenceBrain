@@ -1,0 +1,116 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --bg2: #121a2b;
+  --card: #172033;
+  --line: #2a364d;
+  --text: #eef3ff;
+  --muted: #9aa8c2;
+  --gold: #e3c27a;
+  --green: #5dcc9a;
+  --red: #ef6b6b;
+  --yellow: #e7c15a;
+  --gray: #7d8aa3;
+  --dev: #ef6b6b;
+  --weak: #e7c15a;
+  --flat: #5dcc9a;
+  --miss: #7d8aa3;
+  font-family: "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", "SF Pro Text", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); }
+button, textarea, input, select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  background: #24314a;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+button.primary { background: #3b4d2f; border-color: #6a7d4a; color: #e8f3c8; }
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(11,18,32,.92);
+  backdrop-filter: blur(10px);
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 700; letter-spacing: .04em; }
+.brand small { display: block; color: var(--gold); font-weight: 500; font-size: 12px; }
+.import-next { margin-top: 8px; font-size: 12px; color: var(--muted); }
+.tabs { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; }
+.tabs button[aria-current="page"] { background: #2c3d28; color: var(--gold); }
+.filters { display: flex; gap: 6px; padding: 10px 14px 0; overflow-x: auto; }
+.chip { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; background: transparent; }
+.chip.on { background: #2a3348; color: var(--gold); }
+.list { padding: 10px 12px 88px; display: grid; gap: 10px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+.card-head { display: flex; justify-content: space-between; gap: 8px; }
+.teams { font-weight: 650; }
+.meta { color: var(--muted); font-size: 12px; }
+.tier { font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+.tier.dev { background: #4a2222; color: #ffc4c4; }
+.tier.weak { background: #4a3d1a; color: #ffe3a3; }
+.tier.flat { background: #1d3a2c; color: #b9f0d2; }
+.tier.no_ext, .tier.blocked { background: #2a3140; color: #c5cde0; }
+.warn {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #4a1f1f;
+  color: #ffd0d0;
+  font-size: 12px;
+}
+.status-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pill { font-size: 11px; padding: 2px 7px; border-radius: 6px; }
+.pill.gray { background: #2b3344; color: var(--gray); }
+.pill.yellow { background: #3d3518; color: var(--yellow); }
+.pill.red { background: #3d1f1f; color: #ffb4b4; }
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 11px;
+}
+.grid4 b { display: block; font-size: 13px; }
+.devcell { outline: 1px solid var(--gold); border-radius: 6px; padding: 2px; }
+.muted { color: var(--muted); }
+.sheet {
+  position: fixed;
+  inset: 0;
+  background: #0b1220;
+  overflow: auto;
+  z-index: 30;
+  padding: 12px 12px 80px;
+}
+.back { margin-bottom: 8px; }
+.kv { display: grid; grid-template-columns: 92px 1fr; gap: 4px 8px; font-size: 13px; margin: 8px 0; }
+details { background: #101827; border-radius: 10px; padding: 8px 10px; margin: 8px 0; border: 1px solid var(--line); }
+.panel { padding: 12px; }
+textarea { width: 100%; min-height: 180px; background: #101827; border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.barwrap { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.bar { height: 8px; background: #2a364d; flex: 1; border-radius: 9px; position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: #4d6ea8; }
+.bar em { position: absolute; inset: 0 auto 0 0; background: #c9a35a; opacity: .75; }
+.hl { outline: 2px solid var(--gold); }
+.footer-note { color: var(--muted); font-size: 12px; padding: 0 14px 24px; }
+.clock { color: var(--muted); font-size: 12px; }
+.gs-line {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #2a2416;
+  color: var(--gold);
+  font-size: 12px;
+}
